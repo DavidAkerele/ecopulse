@@ -87,13 +87,46 @@ body > div:first-child { height: 100%; }
   padding: 16px 18px !important;
 }
 
-/* ---- Top pill bar: less wasted width, consistent height ---- */
+/* ---- Top pill bar: spanning end-to-end with justified content ---- */
 .top-pill-bar {
-  padding: 8px 14px !important;
-  gap: 10px;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 16px !important;
+  gap: 16px !important;
   flex-wrap: wrap;
+  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 24px 0 !important;
+  box-sizing: border-box !important;
 }
 .pill-divider { height: 20px; }
+
+/* ---- Model selection pill styling to match savings badge ---- */
+.pill-model-selector {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  background: rgba(16, 185, 129, 0.04) !important;
+  border: 1px solid rgba(162, 186, 168, 0.15) !important;
+  transition: all 0.3s ease !important;
+}
+.pill-model-selector:hover {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(162, 186, 168, 0.3) !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.1) !important;
+}
+.pill-model-selector label {
+  margin: 0 !important;
+  font-size: 0.65rem !important;
+  color: var(--text-muted) !important;
+}
+.pill-select {
+  font-size: 0.72rem !important;
+}
 
 /* ---- Right sidebar tabs: pill container, all 4 visible ---- */
 .sidebar-tabs {
@@ -160,7 +193,7 @@ body > div:first-child { height: 100%; }
 /* ---- Right sidebar content scroll ---- */
 .right-sidebar {
   width: 360px !important;
-  padding: 20px 16px !important;
+  padding: 16px !important;
   flex-shrink: 0;
   min-width: 0;
 }
@@ -653,13 +686,451 @@ body > div:first-child { height: 100%; }
   margin: 4px 0;
 }
 
-/* ---- Remove dark background overlay from the parent bento grid container ---- */
+/* ---- Remove dark background overlay and backdrop filters from all parent viewport containers ---- */
 .main-viewport,
-.bottom-bento-grid,
-.bento-column {
-  background: transparent !important;
+.bento-column,
+.bento-col-main,
+.bento-col-side {
+  background: none !important;
   background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
   border: none !important;
 }
+
+/* ---- Bottom Bento Grid Wrapper Style (Target background particularly here) ---- */
+.bottom-bento-grid {
+  background: none !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(162, 186, 168, 0.15) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  gap: 16px !important;
+}
+
+/* ---- Multimodal File Imports & Recording Styles ---- */
+.workspace-actions-bar {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.action-btn-trigger {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.voice-record-panel {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.workspace-files-tray {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ---- Fix Centered Exceeded Toast Visibility & Pointer Events ---- */
+.budget-exceeded-toast {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: translate(-50%, -45%) scale(0.95) !important;
+}
+
+.budget-exceeded-toast.visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
+/* ---- Move Budget Alert Box Inline ---- */
+.budget-alert-box {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: auto !important;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 16px 0 0 0 !important;
+  box-sizing: border-box !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+}
+
+/* ---- Floating Sidebar Navigation ---- */
+.sidebar-nav {
+  margin: 24px 0 24px 24px !important;
+  height: calc(100vh - 48px) !important;
+  width: 80px !important;
+  padding: 16px 0 !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(162, 186, 168, 0.15) !important;
+  background: rgba(12, 22, 16, 0.35) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ---- Floating Right Sidebar Panel ---- */
+.right-sidebar {
+  margin: 24px 24px 24px 0 !important;
+  height: calc(100vh - 48px) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(162, 186, 168, 0.15) !important;
+  background: rgba(12, 22, 16, 0.35) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ---- Responsive Floating Sidebars Overrides ---- */
+@media (max-width: 1100px) {
+  .sidebar-nav {
+    margin: 12px !important;
+    width: calc(100% - 24px) !important;
+    height: auto !important;
+    border-radius: 12px !important;
+  }
+  .right-sidebar {
+    margin: 12px !important;
+    width: calc(100% - 24px) !important;
+    height: auto !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* =============================================================
+   Premium Animations, Smooth Scroll & Active States
+   ============================================================= */
+
+/* 1. Smooth Scrolling behavior */
+html, body, .right-sidebar-content, .workspace-files-tray, .terminal-body, .history-list, .budget-log-list {
+  scroll-behavior: smooth !important;
+}
+
+/* 2. Staggered Page Load Entry Animations (No opacity fading to prevent hidden text issues) */
+@keyframes slideInLeft {
+  from { transform: translateX(-16px); }
+  to { transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(16px); }
+  to { transform: translateX(0); }
+}
+@keyframes slideInUp {
+  from { transform: translateY(16px); }
+  to { transform: translateY(0); }
+}
+
+.sidebar-nav {
+  animation: slideInLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+.right-sidebar {
+  animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+.top-pill-bar {
+  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+.bottom-bento-grid {
+  animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* 3. Card Hover Lift & Soft Lime Glow */
+.glass-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.glass-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(162, 186, 168, 0.3) !important;
+  box-shadow: 0 15px 35px rgba(74, 222, 128, 0.08), 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 4. CSS Tab Slide-In Transitions (Safe opacity bound) */
+@keyframes tabSlideIn {
+  from {
+    opacity: 0.85;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.results-card[style*="display: flex"],
+.fuel-card[style*="display: flex"],
+.forecast-card[style*="display: flex"],
+.history-card[style*="display: flex"],
+.recommendations-card[style*="display: flex"],
+.local-panel[style*="display: flex"],
+.budget-panel[style*="display: flex"] {
+  animation: tabSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* 5. Breathing UK Grid Intensity Gauge */
+@keyframes floatBreathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.gauge-container {
+  animation: floatBreathe 4s ease-in-out infinite !important;
+}
+
+/* 6. Icon micro-animations & Sidebar Nav Springs */
+.logo-icon-spin:hover {
+  transform: rotate(360deg) scale(1.15) !important;
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.logo-icon-spin {
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.pill-icon-btn {
+  transition: all 0.3s ease !important;
+}
+.pill-icon-btn i, .pill-icon-btn svg {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.pill-icon-btn:hover i, .pill-icon-btn:hover svg {
+  transform: rotate(180deg) scale(1.1) !important;
+}
+
+.nav-item {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+}
+.nav-item i, .nav-item svg {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease !important;
+}
+.nav-item:hover i, .nav-item:hover svg {
+  transform: scale(1.15) translateY(-1px) !important;
+  color: #fff !important;
+}
+
+@media (min-width: 1101px) {
+  .nav-item::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    width: 3px;
+    height: 20px;
+    background: var(--green, #4ade80);
+    border-radius: 99px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .nav-item:hover::after, .nav-item.active::after {
+    transform: translateY(-50%) scaleY(1);
+  }
+}
+@media (max-width: 1100px) {
+  .nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    height: 3px;
+    width: 20px;
+    background: var(--green, #4ade80);
+    border-radius: 99px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .nav-item:hover::after, .nav-item.active::after {
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+/* Interactive Buttons */
+.btn {
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary:hover {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+/* 7. Active Scanning Terminal States */
+.terminal-body {
+  position: relative !important;
+}
+
+@keyframes terminalScanGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.15), 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    border-color: rgba(74, 222, 128, 0.2) !important;
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(74, 222, 128, 0.45), 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    border-color: rgba(74, 222, 128, 0.8) !important;
+  }
+}
+.card-terminal.active-scanning {
+  animation: terminalScanGlow 1.5s infinite ease-in-out !important;
+}
+
+/* Scanning scanline CRT effect */
+.card-terminal.active-scanning .terminal-body::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.06),
+    rgba(0, 255, 0, 0.02),
+    rgba(0, 0, 255, 0.06)
+  );
+  background-size: 100% 4px, 6px 100%;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Laser scan line moving up and down */
+@keyframes scanline-anim {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(calc(100% - 4px)); }
+  100% { transform: translateY(0); }
+}
+.card-terminal.active-scanning .terminal-body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, transparent, rgba(74, 222, 128, 0.8), transparent);
+  animation: scanline-anim 4s linear infinite;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* 8. Regional/Local Highlight card heartbeat on fetch */
+@keyframes heartbeatPulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.01); filter: brightness(1.1); }
+}
+.local-region-card.fetching {
+  animation: heartbeatPulse 1.2s infinite ease-in-out !important;
+  border-color: rgba(34, 211, 238, 0.6) !important;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.2) !important;
+}
+
+/* 9. Daily budget alert box warning glow when close to budget */
+@keyframes budgetAlertFlash {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.2); box-shadow: none; }
+  50% { border-color: rgba(239, 68, 68, 0.6); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+}
+.budget-alert-box.budget-warning-active {
+  animation: budgetAlertFlash 2s infinite ease-in-out !important;
+}
+
+/* 10. Toast notification style override */
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(12, 22, 16, 0.9) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  border: 1px solid rgba(251, 191, 36, 0.4) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 15px rgba(251, 191, 36, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  z-index: 99999 !important;
+  animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast-notification.fade-out {
+  animation: toastFadeOut 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards !important;
+}
+
+@keyframes toastFadeOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(20px) scale(0.9); }
+}
+
+/* =============================================================
+   Interactive Onboarding Tour Stacking Context & Spotlight Fixes
+   ============================================================= */
+
+/* Disable transforms, animations, transitions, and backdrop-filters on all parent container layouts to prevent stacking context traps during the tour */
+body:has(.tour-focus) .sidebar-nav:not(.tour-focus),
+body:has(.tour-focus) .right-sidebar:not(.tour-focus),
+body:has(.tour-focus) .top-pill-bar:not(.tour-focus),
+body:has(.tour-focus) .bottom-bento-grid:not(.tour-focus),
+body:has(.tour-focus) .main-viewport:not(.tour-focus),
+body:has(.tour-focus) .bento-column:not(.tour-focus),
+body:has(.tour-focus) .bento-col-main:not(.tour-focus),
+body:has(.tour-focus) .bento-col-side:not(.tour-focus) {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: auto !important;
+  overflow: visible !important;
+}
+
+/* During onboarding tour, disable all other backdrop-filters to ensure uniform blur from the tour overlay */
+body:has(.tour-focus) .card:not(.tour-focus),
+body:has(.tour-focus) .glass-card:not(.tour-focus),
+body:has(.tour-focus) .sidebar-nav:not(.tour-focus),
+body:has(.tour-focus) .right-sidebar:not(.tour-focus),
+body:has(.tour-focus) .top-pill-bar:not(.tour-focus),
+body:has(.tour-focus) .bottom-bento-grid:not(.tour-focus) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ---- Tour Overlay Uniform Blur ---- */
+.tour-overlay {
+  background: rgba(3, 7, 18, 0.5) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Strip active transforms and animations on the focused element to bypass stacking context traps, and lift z-index */
+/* The box-shadow outline spread is set to exactly 16px to fit bento grid gap and padding boundaries symmetrically */
+.tour-focus {
+  transform: none !important;
+  animation: none !important;
+  position: relative !important;
+  z-index: 1020 !important;
+  box-shadow: 0 0 0 16px rgba(74, 222, 128, 0.25), 0 0 0 9999px rgba(3, 7, 18, 0.65) !important;
+  pointer-events: none;
+}
+
+
 

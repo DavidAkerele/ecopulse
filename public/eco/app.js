@@ -75,6 +75,7 @@ const state = {
   score: 0,
   streak: 0,
   activeQuizQuestion: 0,
+  userClosedAlertBox: false,
   challenges: {
     flashDiet: 0,
     peakShifter: 0,
@@ -749,6 +750,7 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
   const termContainer = document.getElementById('terminal-container');
   if (termContainer) {
     termContainer.scrollTop = termContainer.scrollHeight;
+    termContainer.classList.remove('active-scanning');
   }
   
   state.isAuditing = false;
@@ -846,6 +848,11 @@ function runCarbonAudit() {
   state.isAuditing = true;
   const auditBtn = document.getElementById('audit-btn');
   const terminalBody = document.getElementById('terminal-body');
+  
+  const termContainer = document.getElementById('terminal-container');
+  if (termContainer) {
+    termContainer.classList.add('active-scanning');
+  }
   
   auditBtn.disabled = true;
   auditBtn.innerHTML = '<span class="spinner"></span> Auditing Footprint...';
@@ -1566,6 +1573,11 @@ let localRegionCache = null;
 async function fetchLocalRegionData(regionId) {
   state.selectedRegionId = regionId;
   
+  const regionCard = document.getElementById('local-region-card');
+  if (regionCard) {
+    regionCard.classList.add('fetching');
+  }
+  
   const fetchBtn = document.getElementById('local-fetch-btn');
   if (fetchBtn) {
     fetchBtn.disabled = true;
@@ -1585,6 +1597,10 @@ async function fetchLocalRegionData(regionId) {
   };
 
   renderLocalImpactUI();
+
+  if (regionCard) {
+    regionCard.classList.remove('fetching');
+  }
 
   if (fetchBtn) {
     fetchBtn.disabled = false;
@@ -1774,6 +1790,7 @@ function budgetRecordAudit(promptText, co2Grams, modelColor) {
   });
   if (budgetState.log.length > 20) budgetState.log.pop();
 
+  state.userClosedAlertBox = false;
   budgetSave();
   renderBudgetUI();
 
@@ -1841,12 +1858,14 @@ function renderBudgetUI() {
     alertBox.className = 'budget-alert-box';
     if (isOver) {
       alertBox.classList.add('budget-alert-over');
+      alertBox.classList.add('budget-warning-active');
       alertIcon.setAttribute('data-lucide', 'alert-octagon');
       alertIcon.className = 'budget-alert-icon text-red';
       alertTitle.textContent = '⚠ Budget Exceeded!';
       alertDesc.textContent = `You've used ${pct.toFixed(0)}% of your daily ${limit.toFixed(2)}g CO₂ limit (${(used - limit).toFixed(3)}g over). Switch to lightweight models or defer non-urgent queries.`;
     } else if (isWarn) {
       alertBox.classList.add('budget-alert-warn');
+      alertBox.classList.add('budget-warning-active');
       alertIcon.setAttribute('data-lucide', 'alert-triangle');
       alertIcon.className = 'budget-alert-icon text-amber';
       alertTitle.textContent = '⚡ Approaching Limit';
@@ -1858,13 +1877,18 @@ function renderBudgetUI() {
       return;
     }
     lucide.createIcons();
-    // Ensure alert is visible
-    alertBox.style.display = '';
+    // Ensure alert is visible if not closed by user
+    if (state.userClosedAlertBox) {
+      alertBox.style.display = 'none';
+    } else {
+      alertBox.style.display = '';
+    }
     // Attach close handler
     const closeBtn = alertBox.querySelector('.budget-alert-close');
     if (closeBtn) {
       closeBtn.onclick = () => {
         alertBox.style.display = 'none';
+        state.userClosedAlertBox = true;
       };
     }
   }
@@ -1908,6 +1932,7 @@ function setBudgetLimit(newLimit) {
   const parsed = parseFloat(newLimit);
   if (isNaN(parsed) || parsed < 0.01) return;
   budgetState.limit = parsed;
+  state.userClosedAlertBox = false; // Reset closed alert box state on limit change
   budgetSave();
   renderBudgetUI();
 }
@@ -2400,7 +2425,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Auto-fetch default region (National Average) on first load
-    fetchLocalRegionData(localCitySelect.value);
+    localCitySelect.value = 'national';
+    state.selectedRegionId = 'national';
+    fetchLocalRegionData('national');
   }
   
   // Render score UI and challenges UI on load
@@ -2432,6 +2459,7 @@ document.addEventListener('DOMContentLoaded', () => {
     budgetResetBtn.addEventListener('click', () => {
       budgetState.used = 0;
       budgetState.log = [];
+      state.userClosedAlertBox = false; // Reset closed alert box state on budget reset
       budgetSave();
       renderBudgetUI();
       budgetResetBtn.classList.add('flash-highlight');
@@ -2729,28 +2757,90 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   const tourSteps = [
     {
-      elementSelector: '.sidebar-nav',
-      title: 'Echo Pulse Sidebar',
-      description: 'Interact with this full-height control deck to navigate between playground workspaces, inspect live grids, adjust settings, or replay this guide.',
-      position: 'right'
+      elementSelector: '.sidebar-logo',
+      title: '🌿 Welcome, Eco-Hero!',
+      description: 'Welcome to Echo Pulse! Today, you start your training quest to minimize the ecological cost of AI computing. You will learn to audit prompts, save energy, and earn ranks!',
+      position: 'center'
     },
     {
-      elementSelector: '.top-pill-bar',
-      title: 'Pill Control Header',
-      description: 'Switch models inside this floating pill. Monitor live UK power grid connections and track your Echo Pulse sustainability points/streak badge.',
+      elementSelector: '.pill-model-selector',
+      title: '🤖 Choose Your Model',
+      description: 'Select standard models (Claude, Llama) or use our **Eco-Router** which automatically routes queries to the most carbon-efficient model depending on prompt complexity.',
       position: 'bottom'
     },
     {
-      elementSelector: '.bottom-bento-grid',
-      title: 'Playground Workspace & Dial',
-      description: 'Run prompt carbon audits in the playground, check the UK grid carbon intensity dial, and trace real-time routing decisions in the terminal logs.',
+      elementSelector: '#live-indicator',
+      title: '⚡ Live Grid Telemetry',
+      description: 'This indicator shows if you are connected to the live UK national power grid API. When grid carbon intensity is high, running large GPU jobs releases more emissions.',
+      position: 'bottom'
+    },
+    {
+      elementSelector: '#EchoPulse-score-badge',
+      title: '🏆 Earn Points & Streaks',
+      description: 'Every time you save carbon, your Echo Pulse score grows! Track your total saved grams, earn point achievements, and maintain daily streaks to level up.',
+      position: 'bottom'
+    },
+    {
+      elementSelector: '.card-prompt',
+      title: '✍ Prompt Workspace',
+      description: 'Type prompts or upload documents, images, and audio records here. The app estimates character counts, tokens, and energy draw before you even execute the query!',
+      position: 'top'
+    },
+    {
+      elementSelector: '.card-terminal',
+      title: '📟 Inference Audit Terminal',
+      description: 'Watch the Eco-Router analyze complexity, fetch carbon coefficients, make routing decisions, and print step-by-step carbon consumption details in real-time.',
+      position: 'top'
+    },
+    {
+      elementSelector: '.dial-card',
+      title: '📊 UK Grid Intensity Dial',
+      description: 'Measures carbon density in gCO₂/kWh. When wind/solar power is high, the dial turns green. When fossil fuels dominate, it shifts to red.',
       position: 'top'
     },
     {
       elementSelector: '.right-sidebar',
-      title: 'Telemetry, Impact & Budget',
-      description: 'Examine detailed carbon footprint metrics. Toggle tabs to see model recommendations, check your local Carbon Impact, or manage your daily Carbon Budget!',
-      position: 'left'
+      title: '📈 Analytics Dashboard',
+      description: 'Let\'s explore the detailed analytics deck where we break down energy draw, water cooling, and hardware depletion across four interactive tabs.',
+      position: 'left',
+      actionBefore: () => { switchTab('telemetry'); }
+    },
+    {
+      elementSelector: '.right-sidebar',
+      title: '🎯 Missions & Challenges',
+      description: 'Complete active challenges (like the \'Flash Diet\' or \'Peak Shifter\') to earn bonus points and score multipliers!',
+      position: 'left',
+      actionBefore: () => {
+        const tabBtn = document.getElementById('tab-recommendations');
+        if (tabBtn) tabBtn.click();
+      }
+    },
+    {
+      elementSelector: '.right-sidebar',
+      title: '🗺 Local Carbon Impact',
+      description: 'Select your specific UK region to fetch live carbon coefficients and compare your AI query usage with your local average daily digital footprint.',
+      position: 'left',
+      actionBefore: () => {
+        const tabBtn = document.getElementById('tab-quiz');
+        if (tabBtn) tabBtn.click();
+      }
+    },
+    {
+      elementSelector: '.right-sidebar',
+      title: '💰 Carbon Budgeting',
+      description: 'Set a daily carbon ceiling limit (e.g. 1.0g). The tracker logs your daily audits and alarms you when approaching your carbon limit.',
+      position: 'left',
+      actionBefore: () => {
+        const tabBtn = document.getElementById('tab-budget');
+        if (tabBtn) tabBtn.click();
+      }
+    },
+    {
+      elementSelector: '.sidebar-logo',
+      title: '🎉 Quest Completed!',
+      description: 'Fantastic work! You have finished your training quest. We have awarded you **+50 Echo Pulse Points** to jumpstart your rank. Go ahead and run your first audit!',
+      position: 'center',
+      actionBefore: () => { switchTab('telemetry'); }
     }
   ];
 
@@ -2787,6 +2877,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderTourStep() {
     const step = tourSteps[currentTourStep];
+    
+    // Run pre-step setup (e.g. click tab or change UI state)
+    if (step.actionBefore) {
+      step.actionBefore();
+    }
+    
     const targetEl = document.querySelector(step.elementSelector);
     
     // Remove previous highlights
@@ -2844,7 +2940,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tourPopover) tourPopover.classList.remove('active');
     document.querySelectorAll('.tour-focus').forEach(el => el.classList.remove('tour-focus'));
     
+    // Always switch back to the main telemetry tab
+    switchTab('telemetry');
+    
     // Save completion state
+    if (currentTourStep === tourSteps.length - 1 && !localStorage.getItem('EcoPulse_onboarded_completed')) {
+      awardChallengePoints('Quest Completed! 🎓', 50);
+      localStorage.setItem('EcoPulse_onboarded_completed', 'true');
+    }
     localStorage.setItem('EcoPulse_onboarded', 'true');
   }
 
@@ -2855,7 +2958,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let top = 0;
     let left = 0;
     
-    if (position === 'right') {
+    if (position === 'center') {
+      left = (window.innerWidth - popoverWidth) / 2;
+      top = (window.innerHeight - popoverHeight) / 2;
+    } else if (position === 'right') {
       left = rect.right + 16;
       top = rect.top + (rect.height / 2) - (popoverHeight / 2);
     } else if (position === 'left') {
