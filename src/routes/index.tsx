@@ -5,11 +5,11 @@ import { ECO_BODY } from "@/lib/ecoBody";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EcoPulse: The Carbon-Aware AI Sandbox" },
+      { title: "Echo Pulse" },
       {
         name: "description",
         content:
-          "EcoPulse: A sleek developer and consumer sandbox revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
+          "Echo Pulse: A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
       },
       {
         name: "keywords",

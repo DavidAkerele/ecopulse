@@ -7,7 +7,7 @@
 const MODELS = {
   'eco-router': {
     name: 'Green Eco-Router (Dynamic)',
-    provider: 'Eco-Prompt Sandbox',
+    provider: 'Echo Pulse',
     size: 'Auto',
     kwhPer1k: 0.0015,
     waterPer1k: 1.5,
@@ -871,38 +871,39 @@ function runCarbonAudit() {
         
         setTimeout(() => {
           const comp = analyzePromptComplexity(promptText);
-        terminalBody.innerHTML += `<div class="term-line">> [Router] Analyzing prompt complexity: <strong>${comp.level} Complexity</strong> (${comp.reason})</div>`;
-        
-        setTimeout(() => {
-          terminalBody.innerHTML += `<div class="term-line">> [Router] UK Grid Carbon Intensity: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO₂/kWh</span></div>`;
+          terminalBody.innerHTML += `<div class="term-line">> [Router] Analyzing prompt complexity: <strong>${comp.level} Complexity</strong> (${comp.reason})</div>`;
           
           setTimeout(() => {
-            if (route.throttled) {
-              terminalBody.innerHTML += `<div class="term-line text-warning">> [Router] Carbon Throttle Active: Grid emissions > 150 gCO₂/kWh. Downgrading target model 1 tier.</div>`;
-            } else if (state.carbonIntensity < 75 && route.complexity === 'High') {
-              terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Carbon Grid Optimal: Grid emissions < 75 gCO₂/kWh. Permitting premium model upgrade.</div>`;
-            } else {
-              terminalBody.innerHTML += `<div class="term-line">> [Router] No throttling required. Standard routing path selected.</div>`;
-            }
+            terminalBody.innerHTML += `<div class="term-line">> [Router] UK Grid Carbon Intensity: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO₂/kWh</span></div>`;
             
             setTimeout(() => {
-              terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Decision: Routed to <strong>${MODELS[activeModelKey].name}</strong></div>`;
+              if (route.throttled) {
+                terminalBody.innerHTML += `<div class="term-line text-warning">> [Router] Carbon Throttle Active: Grid emissions > 150 gCO₂/kWh. Downgrading target model 1 tier.</div>`;
+              } else if (state.carbonIntensity < 75 && route.complexity === 'High') {
+                terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Carbon Grid Optimal: Grid emissions < 75 gCO₂/kWh. Permitting premium model upgrade.</div>`;
+              } else {
+                terminalBody.innerHTML += `<div class="term-line">> [Router] No throttling required. Standard routing path selected.</div>`;
+              }
               
               setTimeout(() => {
-                terminalBody.innerHTML += `<div class="term-line">> Establishing session with ${MODELS[activeModelKey].name}...</div>`;
+                terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Decision: Routed to <strong>${MODELS[activeModelKey].name}</strong></div>`;
                 
                 setTimeout(() => {
-                  terminalBody.innerHTML += `<div class="term-line">> Streaming inference response...</div>`;
+                  terminalBody.innerHTML += `<div class="term-line">> Establishing session with ${MODELS[activeModelKey].name}...</div>`;
                   
                   setTimeout(() => {
-                    printAuditResults(promptText, simulatedOutput, activeModelKey);
-                  }, 1000);
-                }, 800);
-              }, 700);
-            }, 600);
-          }, 800);
-        }, 700);
-      }, 600);
+                    terminalBody.innerHTML += `<div class="term-line">> Streaming inference response...</div>`;
+                    
+                    setTimeout(() => {
+                      printAuditResults(promptText, simulatedOutput, activeModelKey);
+                    }, 1000);
+                  }, 800);
+                }, 700);
+              }, 600);
+            }, 800);
+          }, 700);
+        }, 600);
+      }, 500);
     }, 500);
     
   } else {
@@ -919,20 +920,21 @@ function runCarbonAudit() {
       
       setTimeout(() => {
         terminalBody.innerHTML += '<div class="term-line">> Calculating input token footprint...</div>';
-      
-      setTimeout(() => {
-        terminalBody.innerHTML += '<div class="term-line">> Querying live UK grid carbon coefficients...</div>';
-        terminalBody.innerHTML += `<div class="term-line">> Grid Status: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO2/kWh</span></div>`;
         
         setTimeout(() => {
-          terminalBody.innerHTML += '<div class="term-line">> Streaming simulated response output...</div>';
+          terminalBody.innerHTML += '<div class="term-line">> Querying live UK grid carbon coefficients...</div>';
+          terminalBody.innerHTML += `<div class="term-line">> Grid Status: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO2/kWh</span></div>`;
           
           setTimeout(() => {
-            printAuditResults(promptText, simulatedOutput, state.selectedModel);
-          }, 1000);
-        }, 800);
-      }, 700);
-    }, 600);
+            terminalBody.innerHTML += '<div class="term-line">> Streaming simulated response output...</div>';
+            
+            setTimeout(() => {
+              printAuditResults(promptText, simulatedOutput, state.selectedModel);
+            }, 1000);
+          }, 800);
+        }, 700);
+      }, 600);
+    }, 500);
   }
 }
 
@@ -1407,7 +1409,7 @@ function awardChallengePoints(message, points) {
       <i data-lucide="trophy" class="text-amber"></i>
       <div class="toast-text">
         <div class="toast-title">${message}</div>
-        <div class="toast-desc">You've earned <strong>+${points} EcoPulse Points</strong>.</div>
+        <div class="toast-desc">You've earned <strong>+${points} Echo Pulse Points</strong>.</div>
       </div>
     </div>
   `;
@@ -2727,14 +2729,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const tourSteps = [
     {
       elementSelector: '.sidebar-nav',
-      title: 'EcoPulse Sidebar',
+      title: 'Echo Pulse Sidebar',
       description: 'Interact with this full-height control deck to navigate between playground workspaces, inspect live grids, adjust settings, or replay this guide.',
       position: 'right'
     },
     {
       elementSelector: '.top-pill-bar',
       title: 'Pill Control Header',
-      description: 'Switch models inside this floating pill. Monitor live UK power grid connections and track your EcoPulse sustainability points/streak badge.',
+      description: 'Switch models inside this floating pill. Monitor live UK power grid connections and track your Echo Pulse sustainability points/streak badge.',
       position: 'bottom'
     },
     {
