@@ -66,6 +66,7 @@ const state = {
   generationMix: [],
   hourlyForecast: [],
   selectedRegionId: '3', // default to Manchester (North West)
+  attachments: [], // Multimodal attachments tray
   inputTokens: 0,
   outputTokens: 0,
   isAuditing: false,
@@ -94,6 +95,12 @@ const API_FORECAST = 'https://api.carbonintensity.org.uk/intensity/date';
 
 // Analyze prompt text for complexity based on character length and presence of programming/math keywords
 function analyzePromptComplexity(text) {
+  // If there are multimodal attachments, automatically classify as High Complexity
+  if (state.attachments && state.attachments.length > 0) {
+    const types = state.attachments.map(a => a.type).join(', ');
+    return { level: 'High', reason: `Multimodal attachment(s) detected: ${types}` };
+  }
+  
   if (!text) return { level: 'Low', reason: 'Empty query' };
   
   const len = text.length;
@@ -204,7 +211,8 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
   }
   
   const model = MODELS[activeKey];
-  const inTokens = estimateTokens(inputTxt);
+  const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
+  const inTokens = estimateTokens(inputTxt) + attachmentTokens;
   const outTokens = estimateTokens(outputTxt);
   const totalTokens = inTokens + outTokens;
   
@@ -618,9 +626,17 @@ function updateRealtimeCounts() {
   
   const text = promptInput.value;
   const count = text.length;
-  const tokens = estimateTokens(text);
   
-  characterCount.innerText = count.toLocaleString();
+  const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
+  const textTokens = estimateTokens(text);
+  const tokens = textTokens + attachmentTokens;
+  
+  if (state.attachments && state.attachments.length > 0) {
+    characterCount.innerHTML = `${count.toLocaleString()} <span style="font-size:0.65rem; color:var(--green); margin-left:4px;">(+${state.attachments.length} attachment${state.attachments.length > 1 ? 's' : ''})</span>`;
+  } else {
+    characterCount.innerText = count.toLocaleString();
+  }
+  
   tokenEstimate.innerText = tokens.toLocaleString();
   
   const routerDivider = document.getElementById('router-divider');
@@ -741,6 +757,12 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
   
   metricsResultCard.classList.add('visible');
   
+  // Clear prompt input and attachments tray
+  if (promptInput) promptInput.value = '';
+  state.attachments = [];
+  renderAttachmentsTray();
+  updateRealtimeCounts();
+  
   // EcoPulse Challenge checks
   if (activeModelKey === 'llama3-8b-flash') {
     updateChallengeProgress('flashDiet', 1);
@@ -814,8 +836,9 @@ function runCarbonAudit() {
   
   const promptInput = document.getElementById('prompt-input');
   const promptText = promptInput.value.trim();
-  if (!promptText) {
-    alert('Please enter a prompt or code snippet to analyze.');
+  const hasAttachments = state.attachments && state.attachments.length > 0;
+  if (!promptText && !hasAttachments) {
+    alert('Please enter a prompt or attach a file/recording to analyze.');
     return;
   }
   
@@ -838,7 +861,16 @@ function runCarbonAudit() {
       terminalBody.innerHTML += '<div class="term-line">> [Router] Initiating carbon-aware request routing...</div>';
       
       setTimeout(() => {
-        const comp = analyzePromptComplexity(promptText);
+        if (state.attachments && state.attachments.length > 0) {
+          terminalBody.innerHTML += `<div class="term-line text-cyan">> [Multimodal] Parsing ${state.attachments.length} attachment(s)...</div>`;
+          state.attachments.forEach(att => {
+            const sizeStr = formatBytes(att.size);
+            terminalBody.innerHTML += `<div class="term-line text-muted">> [Multimodal] - ${att.type.toUpperCase()}: "${att.name}" (${sizeStr}) -> +${att.tokens} tokens</div>`;
+          });
+        }
+        
+        setTimeout(() => {
+          const comp = analyzePromptComplexity(promptText);
         terminalBody.innerHTML += `<div class="term-line">> [Router] Analyzing prompt complexity: <strong>${comp.level} Complexity</strong> (${comp.reason})</div>`;
         
         setTimeout(() => {
@@ -877,7 +909,16 @@ function runCarbonAudit() {
     terminalBody.innerHTML = '<div class="term-line loading-text">> Establishing session with ' + MODELS[state.selectedModel].name + '...</div>';
     
     setTimeout(() => {
-      terminalBody.innerHTML += '<div class="term-line">> Calculating input token footprint...</div>';
+      if (state.attachments && state.attachments.length > 0) {
+        terminalBody.innerHTML += `<div class="term-line text-cyan">> [Multimodal] Parsing ${state.attachments.length} attachment(s)...</div>`;
+        state.attachments.forEach(att => {
+          const sizeStr = formatBytes(att.size);
+          terminalBody.innerHTML += `<div class="term-line text-muted">> [Multimodal] - ${att.type.toUpperCase()}: "${att.name}" (${sizeStr}) -> +${att.tokens} tokens</div>`;
+        });
+      }
+      
+      setTimeout(() => {
+        terminalBody.innerHTML += '<div class="term-line">> Calculating input token footprint...</div>';
       
       setTimeout(() => {
         terminalBody.innerHTML += '<div class="term-line">> Querying live UK grid carbon coefficients...</div>';
@@ -1901,9 +1942,348 @@ function showBudgetExceededToast() {
 }
 
 // =============================================================
+// MULTIMODAL IMPORTS SYSTEM
+// =============================================================
+
+let audioStream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let audioContext = null;
+let animationFrameId = null;
+let recordStartTime = null;
+let recordTimerInterval = null;
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function initMultimodalImports() {
+  const cardPrompt = document.querySelector('.card-prompt .card-body');
+  const promptInput = document.getElementById('prompt-input');
+  if (!cardPrompt || !promptInput) return;
+  if (document.querySelector('.workspace-actions-bar')) return; // Avoid double rendering
+
+  // 1. Create Actions Bar
+  const actionsBar = document.createElement('div');
+  actionsBar.className = 'workspace-actions-bar';
+  actionsBar.innerHTML = `
+    <button type="button" class="action-btn-trigger action-btn-doc" id="btn-attach-doc" title="Attach code or document files (.txt, .js, .py, etc.)">
+      <i data-lucide="file-text"></i> Doc/Code
+    </button>
+    <button type="button" class="action-btn-trigger action-btn-img" id="btn-attach-img" title="Attach images (.png, .jpg, .webp)">
+      <i data-lucide="image"></i> Image
+    </button>
+    <button type="button" class="action-btn-trigger action-btn-vid" id="btn-attach-vid" title="Attach videos (.mp4, .webm)">
+      <i data-lucide="video"></i> Video
+    </button>
+    <button type="button" class="action-btn-trigger action-btn-mic" id="btn-record-audio" title="Record live voice input">
+      <i data-lucide="mic"></i> Record Voice
+    </button>
+    <input type="file" id="input-attach-doc" accept=".txt,.js,.py,.pyw,.json,.html,.css,.md,.csv,.xml,.sh" style="display:none;" multiple>
+    <input type="file" id="input-attach-img" accept="image/*" style="display:none;" multiple>
+    <input type="file" id="input-attach-vid" accept="video/*" style="display:none;" multiple>
+  `;
+
+  // 2. Create Recording Visualizer Panel
+  const voicePanel = document.createElement('div');
+  voicePanel.className = 'voice-record-panel';
+  voicePanel.style.display = 'none';
+  voicePanel.innerHTML = `
+    <div class="record-indicator">
+      <span class="record-dot"></span>
+      <span>RECORDING VOICE</span>
+    </div>
+    <canvas class="visualizer-canvas" id="voice-visualizer"></canvas>
+    <div class="record-timer" id="voice-timer">00:00</div>
+    <button type="button" class="record-action-btn record-btn-stop" id="btn-stop-record" title="Stop and save recording">
+      <i data-lucide="square" style="width:12px;height:12px;fill:white;"></i>
+    </button>
+    <button type="button" class="record-action-btn record-btn-close" id="btn-cancel-record" title="Discard recording">
+      <i data-lucide="x" style="width:12px;height:12px;"></i>
+    </button>
+  `;
+
+  // 3. Create Files list tray
+  const filesTray = document.createElement('div');
+  filesTray.className = 'workspace-files-tray';
+  filesTray.style.display = 'none';
+
+  // Insert elements:
+  promptInput.parentNode.insertBefore(actionsBar, promptInput.nextSibling);
+  actionsBar.parentNode.insertBefore(voicePanel, actionsBar.nextSibling);
+  voicePanel.parentNode.insertBefore(filesTray, voicePanel.nextSibling);
+
+  // Initialize Lucide Icons for injected content
+  lucide.createIcons();
+
+  // File Selector triggers
+  const btnDoc = document.getElementById('btn-attach-doc');
+  const inputDoc = document.getElementById('input-attach-doc');
+  btnDoc.addEventListener('click', () => inputDoc.click());
+
+  const btnImg = document.getElementById('btn-attach-img');
+  const inputImg = document.getElementById('input-attach-img');
+  btnImg.addEventListener('click', () => inputImg.click());
+
+  const btnVid = document.getElementById('btn-attach-vid');
+  const inputVid = document.getElementById('input-attach-vid');
+  btnVid.addEventListener('click', () => inputVid.click());
+
+  const btnMic = document.getElementById('btn-record-audio');
+
+  // Input event listeners
+  inputDoc.addEventListener('change', (e) => handleFileAttach(e.target.files, 'document'));
+  inputImg.addEventListener('change', (e) => handleFileAttach(e.target.files, 'image'));
+  inputVid.addEventListener('change', (e) => handleFileAttach(e.target.files, 'video'));
+  btnMic.addEventListener('click', toggleVoiceRecording);
+
+  // Stop/Close record buttons
+  document.getElementById('btn-stop-record').addEventListener('click', stopVoiceRecording);
+  document.getElementById('btn-cancel-record').addEventListener('click', cancelVoiceRecording);
+}
+
+// Attach standard files
+function handleFileAttach(filesList, type) {
+  if (!filesList || filesList.length === 0) return;
+  
+  for (let i = 0; i < filesList.length; i++) {
+    const file = filesList[i];
+    const id = 'attachment_' + Math.random().toString(36).substr(2, 9);
+    
+    let tokens = 0;
+    if (type === 'image') {
+      tokens = 800; // Flat multimodal image penalty
+    } else if (type === 'video') {
+      tokens = 1000;
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.src = URL.createObjectURL(file);
+      video.onloadedmetadata = () => {
+        const duration = video.duration || 5;
+        const item = state.attachments.find(a => a.id === id);
+        if (item) {
+          item.tokens = Math.ceil(duration * 300);
+          item.meta = `${formatBytes(file.size)} • ${duration.toFixed(1)}s`;
+          renderAttachmentsTray();
+          updateRealtimeCounts();
+        }
+      };
+    } else if (type === 'document') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result || '';
+        const item = state.attachments.find(a => a.id === id);
+        if (item) {
+          item.tokens = Math.ceil(content.length / 4);
+          item.meta = `${formatBytes(file.size)} • ${content.length.toLocaleString()} chars`;
+          renderAttachmentsTray();
+          updateRealtimeCounts();
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    const icon = type === 'document' ? 'file-text' : type === 'image' ? 'image' : 'video';
+    
+    state.attachments.push({
+      id,
+      name: file.name,
+      type,
+      size: file.size,
+      tokens,
+      icon,
+      meta: formatBytes(file.size),
+      raw: file
+    });
+  }
+  
+  renderAttachmentsTray();
+  updateRealtimeCounts();
+}
+
+// Render files list tray
+function renderAttachmentsTray() {
+  const tray = document.querySelector('.workspace-files-tray');
+  if (!tray) return;
+
+  if (state.attachments.length === 0) {
+    tray.style.display = 'none';
+    tray.innerHTML = '';
+    return;
+  }
+
+  tray.style.display = 'flex';
+  tray.innerHTML = state.attachments.map(att => {
+    return `
+      <div class="media-attachment-item" data-id="${att.id}">
+        <div class="media-item-left">
+          <div class="media-item-icon type-${att.type}">
+            <i data-lucide="${att.icon}"></i>
+          </div>
+          <span class="media-item-name" title="${att.name}">${att.name}</span>
+          <span class="media-item-meta">${att.meta}</span>
+        </div>
+        <div class="media-item-right">
+          <span class="media-item-tokens">+${att.tokens.toLocaleString()} tokens</span>
+          <button type="button" class="media-item-remove" onclick="removeAttachment('${att.id}')" title="Remove attachment">
+            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  lucide.createIcons();
+}
+
+// Global scope window helper to remove attachment
+window.removeAttachment = function(id) {
+  state.attachments = state.attachments.filter(a => a.id !== id);
+  renderAttachmentsTray();
+  updateRealtimeCounts();
+};
+
+// Toggle Voice Recording panel
+async function toggleVoiceRecording() {
+  const voicePanel = document.querySelector('.voice-record-panel');
+  if (voicePanel.style.display === 'flex') {
+    stopVoiceRecording();
+    return;
+  }
+
+  try {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    voicePanel.style.display = 'flex';
+    audioChunks = [];
+
+    mediaRecorder = new MediaRecorder(audioStream);
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      const durationSeconds = (Date.now() - recordStartTime) / 1000;
+      const id = 'attachment_' + Math.random().toString(36).substr(2, 9);
+      
+      state.attachments.push({
+        id,
+        name: `Voice Recording #${state.attachments.filter(a => a.type === 'audio').length + 1}.wav`,
+        type: 'audio',
+        size: audioBlob.size,
+        tokens: Math.ceil(durationSeconds * 50),
+        icon: 'mic',
+        meta: `${formatBytes(audioBlob.size)} • ${durationSeconds.toFixed(1)}s`,
+        raw: audioBlob
+      });
+      
+      renderAttachmentsTray();
+      updateRealtimeCounts();
+    };
+
+    mediaRecorder.start();
+    recordStartTime = Date.now();
+    
+    startAudioVisualizer(audioStream);
+
+    const timerEl = document.getElementById('voice-timer');
+    timerEl.textContent = '00:00';
+    recordTimerInterval = setInterval(() => {
+      const seconds = Math.floor((Date.now() - recordStartTime) / 1000);
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      timerEl.textContent = `${m}:${s}`;
+    }, 1000);
+
+  } catch (err) {
+    alert('Microphone access denied or audio device not found: ' + err.message);
+  }
+}
+
+function stopVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  cleanupVoiceRecording();
+}
+
+function cancelVoiceRecording() {
+  cleanupVoiceRecording();
+}
+
+function cleanupVoiceRecording() {
+  const voicePanel = document.querySelector('.voice-record-panel');
+  if (voicePanel) voicePanel.style.display = 'none';
+
+  if (recordTimerInterval) {
+    clearInterval(recordTimerInterval);
+    recordTimerInterval = null;
+  }
+
+  if (audioStream) {
+    audioStream.getTracks().forEach(track => track.stop());
+    audioStream = null;
+  }
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+}
+
+function startAudioVisualizer(stream) {
+  const canvas = document.getElementById('voice-visualizer');
+  if (!canvas) return;
+  const canvasCtx = canvas.getContext('2d');
+  
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(stream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  source.connect(analyser);
+  
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  
+  function draw() {
+    animationFrameId = requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(dataArray);
+    
+    canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const barWidth = (canvas.width / bufferLength) * 1.5;
+    let barHeight;
+    let x = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+      barHeight = dataArray[i] / 2;
+      canvasCtx.fillStyle = `rgba(250, 204, 21, ${0.3 + barHeight/150})`;
+      canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+      x += barWidth;
+    }
+  }
+  
+  draw();
+}
+
+// =============================================================
 // DOMContentLoaded — Application Bootstrap
 // =============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Bootstrap Multimodal Imports Integration UI
+  initMultimodalImports();
+  
   // Restore today's budget from localStorage
   budgetRestoreDaily();
 
