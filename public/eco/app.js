@@ -65,6 +65,7 @@ const state = {
   carbonIntensity: 120, // default moderate
   generationMix: [],
   hourlyForecast: [],
+  selectedRegionId: '3', // default to Manchester (North West)
   inputTokens: 0,
   outputTokens: 0,
   isAuditing: false,
@@ -448,6 +449,14 @@ function renderGridUI() {
   const intensityValue = document.getElementById('intensity-value');
   const intensityLabel = document.getElementById('intensity-label');
   const gaugeFill = document.getElementById('gauge-fill');
+  
+  // Set card title dynamically based on selected region
+  const dialCardHeader = document.querySelector('.dial-card .card-header h2');
+  if (dialCardHeader) {
+    const regionId = state.selectedRegionId || '3';
+    const regionName = LOCAL_REGION_DATA[regionId]?.name || 'UK';
+    dialCardHeader.textContent = regionId === 'national' ? 'UK Grid Coefficient' : `${regionName} Grid Coefficient`;
+  }
   
   // Set intensity texts
   intensityValue.innerText = state.carbonIntensity;
@@ -1376,20 +1385,102 @@ function awardChallengePoints(message, points) {
 
 // Maps dropdown option values (regionId strings) to display names & insights
 const LOCAL_REGION_DATA = {
-  '1':  { name: 'North Scotland',             insight: 'North Scotland leads the UK in wind power, with some of the world\'s highest capacity factors for onshore wind. Hydro power supplements supply during low-wind periods.' },
-  '2':  { name: 'South Scotland (Edinburgh/Glasgow)', insight: 'South Scotland benefits from strong offshore and onshore wind, with Edinburgh\'s carbon intensity consistently below the UK average.' },
-  '3':  { name: 'North West England (Manchester)', insight: 'The Manchester region is connected to significant offshore wind capacity in the Irish Sea, particularly via Burbo Bank and Walney Extension. Grid intensity fluctuates with tidal wind windows.' },
-  '4':  { name: 'North East England (Newcastle)', insight: 'The North East has a strong industrial legacy but is transitioning fast — Teesside is home to one of the UK\'s emerging green hydrogen hubs and offshore wind clusters.' },
-  '5':  { name: 'Yorkshire',                  insight: 'Yorkshire\'s grid is driven by a mix of Humber offshore wind, gas peakers, and remaining biomass capacity. Running AI queries at midday benefits from better renewable penetration.' },
-  '6':  { name: 'Merseyside & Cheshire (Liverpool)', insight: 'Merseyside benefits from strong Irish Sea wind connectivity. The region is also home to several pump-storage facilities which help balance renewable intermittency.' },
-  '7':  { name: 'South Wales (Cardiff)',       insight: 'South Wales has significant tidal stream potential and a legacy nuclear contribution. The region\'s carbon intensity is typically moderate, improving steadily with offshore wind.' },
-  '8':  { name: 'West Midlands (Birmingham)',  insight: 'The West Midlands is land-locked with fewer direct renewables. It relies on grid imports from windier regions. Running lighter AI models during peak hours is highly recommended.' },
-  '9':  { name: 'East Midlands (Nottingham)', insight: 'The East Midlands is historically gas-heavy but transitioning with East Midlands Net Zero cluster investments. Solar energy peaks in summer afternoons.' },
-  '10': { name: 'East England (Norwich)',      insight: 'East England is a solar powerhouse — high irradiance and flat terrain enable strong PV output in summer. Offshore wind from the North Sea also contributes significantly.' },
-  '11': { name: 'South West England (Bristol/Exeter)', insight: 'The South West has excellent wind and tidal resources. The region hosts the Hinkley Point C nuclear project, which will substantially reduce grid carbon intensity from 2030.' },
-  '12': { name: 'South England (Southampton)', insight: 'South England benefits from high solar irradiance. It is also connected to French nuclear power via the IFA interconnector, which can provide very low-carbon imports.' },
-  '13': { name: 'London',                     insight: 'London\'s grid benefits from interconnectors to France and Belgium (low-carbon nuclear), but high urban density and data centre load maintain moderate intensity. Early morning is typically the cleanest window.' },
-  '14': { name: 'South East England (Brighton)', insight: 'The South East has strong solar capacity and benefits from Channel interconnectors. Grid intensity often dips below 100 gCO₂/kWh on sunny, windy days.' },
+  'national': {
+    name: 'United Kingdom (National Average)',
+    typicalIntensity: 120,
+    typicalMix: [
+      { fuel: 'gas', perc: 40 },
+      { fuel: 'wind', perc: 30 },
+      { fuel: 'nuclear', perc: 15 },
+      { fuel: 'imports', perc: 10 },
+      { fuel: 'solar', perc: 5 }
+    ],
+    insight: 'The UK national grid average combines clean generation from Scottish wind, English solar, and nuclear baseloads with transitionary natural gas and international imports.'
+  },
+  '1':  { 
+    name: 'North Scotland', 
+    typicalIntensity: 15, 
+    typicalMix: [{ fuel: 'wind', perc: 80.8 }, { fuel: 'solar', perc: 19.2 }],
+    insight: 'North Scotland leads the UK in wind power, with some of the world\'s highest capacity factors for onshore wind. Hydro power supplements supply during low-wind periods.' 
+  },
+  '2':  { 
+    name: 'South Scotland (Edinburgh/Glasgow)', 
+    typicalIntensity: 30, 
+    typicalMix: [{ fuel: 'wind', perc: 32.4 }, { fuel: 'nuclear', perc: 37.8 }, { fuel: 'solar', perc: 22.0 }, { fuel: 'biomass', perc: 2.4 }, { fuel: 'imports', perc: 5.4 }],
+    insight: 'South Scotland benefits from strong offshore and onshore wind, with Edinburgh\'s carbon intensity consistently below the UK average.' 
+  },
+  '3':  { 
+    name: 'North West England (Manchester)', 
+    typicalIntensity: 80, 
+    typicalMix: [{ fuel: 'nuclear', perc: 41.3 }, { fuel: 'solar', perc: 17.2 }, { fuel: 'gas', perc: 14.9 }, { fuel: 'imports', perc: 12.4 }, { fuel: 'biomass', perc: 7.1 }, { fuel: 'wind', perc: 7.2 }],
+    insight: 'The Manchester region is connected to significant offshore wind capacity in the Irish Sea, particularly via Burbo Bank and Walney Extension. Grid intensity fluctuates with tidal wind windows.' 
+  },
+  '4':  { 
+    name: 'North East England (Newcastle)', 
+    typicalIntensity: 40, 
+    typicalMix: [{ fuel: 'imports', perc: 40.8 }, { fuel: 'nuclear', perc: 23.9 }, { fuel: 'biomass', perc: 18.4 }, { fuel: 'solar', perc: 14.7 }, { fuel: 'wind', perc: 2.2 }],
+    insight: 'The North East has a strong industrial legacy but is transitioning fast — Teesside is home to one of the UK\'s emerging green hydrogen hubs and offshore wind clusters.' 
+  },
+  '5':  { 
+    name: 'Yorkshire', 
+    typicalIntensity: 130, 
+    typicalMix: [{ fuel: 'biomass', perc: 33.0 }, { fuel: 'gas', perc: 26.0 }, { fuel: 'wind', perc: 20.3 }, { fuel: 'solar', perc: 11.9 }, { fuel: 'imports', perc: 5.5 }, { fuel: 'nuclear', perc: 3.2 }],
+    insight: 'Yorkshire\'s grid is driven by a mix of Humber offshore wind, gas peakers, and remaining biomass capacity. Running AI queries at midday benefits from better renewable penetration.' 
+  },
+  '6':  { 
+    name: 'Merseyside & Cheshire (Liverpool)', 
+    typicalIntensity: 120, 
+    typicalMix: [{ fuel: 'gas', perc: 33.8 }, { fuel: 'solar', perc: 29.9 }, { fuel: 'nuclear', perc: 18.9 }, { fuel: 'wind', perc: 10.8 }, { fuel: 'imports', perc: 4.3 }, { fuel: 'biomass', perc: 2.3 }],
+    insight: 'Merseyside benefits from strong Irish Sea wind connectivity. The region is also home to several pump-storage facilities which help balance renewable intermittency.' 
+  },
+  '7':  { 
+    name: 'South Wales (Cardiff)', 
+    typicalIntensity: 240, 
+    typicalMix: [{ fuel: 'gas', perc: 68.8 }, { fuel: 'solar', perc: 30.3 }, { fuel: 'wind', perc: 0.9 }],
+    insight: 'South Wales has significant tidal stream potential and a legacy nuclear contribution. The region\'s carbon intensity is typically moderate, improving steadily with offshore wind.' 
+  },
+  '8':  { 
+    name: 'West Midlands (Birmingham)', 
+    typicalIntensity: 135, 
+    typicalMix: [{ fuel: 'solar', perc: 43.1 }, { fuel: 'gas', perc: 28.7 }, { fuel: 'nuclear', perc: 14.2 }, { fuel: 'wind', perc: 5.8 }, { fuel: 'imports', perc: 4.3 }, { fuel: 'biomass', perc: 4.0 }],
+    insight: 'The West Midlands is land-locked with fewer direct renewables. It relies on grid imports from windier regions. Running lighter AI models during peak hours is highly recommended.' 
+  },
+  '9':  { 
+    name: 'East Midlands (Nottingham)', 
+    typicalIntensity: 150, 
+    typicalMix: [{ fuel: 'gas', perc: 36.0 }, { fuel: 'solar', perc: 30.0 }, { fuel: 'biomass', perc: 15.7 }, { fuel: 'wind', perc: 14.3 }, { fuel: 'imports', perc: 2.6 }, { fuel: 'nuclear', perc: 1.5 }],
+    insight: 'The East Midlands is historically gas-heavy but transitioning with East Midlands Net Zero cluster investments. Solar energy peaks in summer afternoons.' 
+  },
+  '10': { 
+    name: 'East England (Norwich)', 
+    typicalIntensity: 120, 
+    typicalMix: [{ fuel: 'solar', perc: 48.5 }, { fuel: 'imports', perc: 24.8 }, { fuel: 'gas', perc: 13.2 }, { fuel: 'wind', perc: 7.7 }, { fuel: 'biomass', perc: 4.3 }, { fuel: 'nuclear', perc: 1.5 }],
+    insight: 'East England is a solar powerhouse — high irradiance and flat terrain enable strong PV output in summer. Offshore wind from the North Sea also contributes significantly.' 
+  },
+  '11': { 
+    name: 'South West England (Bristol/Exeter)', 
+    typicalIntensity: 75, 
+    typicalMix: [{ fuel: 'solar', perc: 74.7 }, { fuel: 'gas', perc: 19.8 }, { fuel: 'imports', perc: 2.5 }, { fuel: 'biomass', perc: 1.0 }, { fuel: 'wind', perc: 1.5 }],
+    insight: 'The South West has excellent wind and tidal resources. The region hosts the Hinkley Point C nuclear project, which will substantially reduce grid carbon intensity from 2030.' 
+  },
+  '12': { 
+    name: 'South England (Southampton)', 
+    typicalIntensity: 125, 
+    typicalMix: [{ fuel: 'solar', perc: 49.2 }, { fuel: 'gas', perc: 30.9 }, { fuel: 'imports', perc: 9.7 }, { fuel: 'biomass', perc: 3.9 }, { fuel: 'nuclear', perc: 2.3 }, { fuel: 'wind', perc: 3.9 }],
+    insight: 'South England benefits from high solar irradiance. It is also connected to French nuclear power via the IFA interconnector, which can provide very low-carbon imports.' 
+  },
+  '13': { 
+    name: 'London', 
+    typicalIntensity: 130, 
+    typicalMix: [{ fuel: 'imports', perc: 47.4 }, { fuel: 'solar', perc: 28.2 }, { fuel: 'gas', perc: 19.3 }, { fuel: 'wind', perc: 2.8 }, { fuel: 'biomass', perc: 1.4 }, { fuel: 'nuclear', perc: 0.7 }, { fuel: 'hydro', perc: 0.2 }],
+    insight: 'London\'s grid benefits from interconnectors to France and Belgium (low-carbon nuclear), but high urban density and data centre load maintain moderate intensity. Early morning is typically the cleanest window.' 
+  },
+  '14': { 
+    name: 'South East England (Brighton)', 
+    typicalIntensity: 120, 
+    typicalMix: [{ fuel: 'imports', perc: 61.9 }, { fuel: 'gas', perc: 19.5 }, { fuel: 'solar', perc: 17.4 }, { fuel: 'wind', perc: 0.9 }, { fuel: 'hydro', perc: 0.3 }],
+    insight: 'The South East has strong solar capacity and benefits from Channel interconnectors. Grid intensity often dips below 100 gCO₂/kWh on sunny, windy days.' 
+  },
 };
 
 // Average daily digital CO₂ footprint per UK adult (streaming, browsing, emails, social media)
@@ -1429,38 +1520,25 @@ let localRegionCache = null;
 
 // Fetch live regional data from Carbon Intensity API
 async function fetchLocalRegionData(regionId) {
+  state.selectedRegionId = regionId;
+  
   const fetchBtn = document.getElementById('local-fetch-btn');
   if (fetchBtn) {
     fetchBtn.disabled = true;
     fetchBtn.innerHTML = '<span class="spinner"></span> Fetching...';
   }
 
-  try {
-    const res = await fetch(`https://api.carbonintensity.org.uk/regional/regionid/${regionId}`, {
-      method: 'GET', mode: 'cors'
-    });
-    if (!res.ok) throw new Error('Regional API unavailable');
-    const json = await res.json();
-    const d = json.data[0];
-    localRegionCache = {
-      regionId,
-      name: LOCAL_REGION_DATA[regionId]?.name || d.shortname || d.dnoregion,
-      intensity: d.intensity.forecast || d.intensity.actual || state.carbonIntensity,
-      index: d.intensity.index || 'moderate',
-      generationmix: (d.generationmix || []).sort((a, b) => b.perc - a.perc),
-      live: true,
-    };
-  } catch (e) {
-    // Fallback: use global simulated data, substitute regional name
-    localRegionCache = {
-      regionId,
-      name: LOCAL_REGION_DATA[regionId]?.name || 'Selected Region',
-      intensity: state.carbonIntensity,
-      index: state.carbonIntensity < 75 ? 'very low' : state.carbonIntensity < 150 ? 'moderate' : 'high',
-      generationmix: state.generationMix,
-      live: false,
-    };
-  }
+  // updateGridMetrics will load active region's data (live or simulated fallback)
+  await updateGridMetrics();
+
+  localRegionCache = {
+    regionId,
+    name: LOCAL_REGION_DATA[regionId]?.name || 'Selected Region',
+    intensity: state.carbonIntensity,
+    index: state.carbonIntensity < 75 ? 'very low' : state.carbonIntensity < 150 ? 'moderate' : 'high',
+    generationmix: state.generationMix,
+    live: state.isLive,
+  };
 
   renderLocalImpactUI();
 
@@ -1920,10 +1998,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const localFetchBtn = document.getElementById('local-fetch-btn');
   const localCitySelect = document.getElementById('local-city-select');
   if (localFetchBtn && localCitySelect) {
+    // Prepend United Kingdom (National Average) option dynamically
+    if (!localCitySelect.querySelector('option[value="national"]')) {
+      const opt = document.createElement('option');
+      opt.value = 'national';
+      opt.textContent = 'United Kingdom (National Average)';
+      localCitySelect.insertBefore(opt, localCitySelect.firstChild);
+    }
+
     localFetchBtn.addEventListener('click', () => {
       const regionId = localCitySelect.value;
       fetchLocalRegionData(regionId);
     });
+    
+    localCitySelect.addEventListener('change', () => {
+      const regionId = localCitySelect.value;
+      fetchLocalRegionData(regionId);
+    });
+    
     // Auto-fetch default region (Manchester) on first load
     fetchLocalRegionData(localCitySelect.value);
   }
@@ -2028,38 +2120,147 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Intercept grid update logic in app.js using our custom settings values
+  // Intercept grid update logic in app.js using our custom settings values and regional active selection
   const originalUpdateGrid = updateGridMetrics;
   updateGridMetrics = async function() {
-    if (forceSimulation) {
-      // Force simulated data bypassing live fetch
+    if (isGridUpdateInFlight) return;
+    isGridUpdateInFlight = true;
+
+    const liveIndicator = document.getElementById('live-indicator');
+    const liveStatusText = document.getElementById('live-status-text');
+    const regionId = state.selectedRegionId || '3';
+    const isNational = (regionId === 'national');
+
+    try {
+      if (forceSimulation) {
+        // Force simulated data bypassing live fetch
+        const simulated = getSimulatedGridData();
+        let regionalIntensity = simulated.intensity;
+        let regionalMix = simulated.mix;
+        
+        if (!isNational) {
+          const regMeta = LOCAL_REGION_DATA[regionId];
+          if (regMeta) {
+            const factor = simulated.intensity / 120.0;
+            regionalIntensity = Math.round(regMeta.typicalIntensity * factor);
+            regionalMix = regMeta.typicalMix || simulated.mix;
+          }
+        }
+        
+        state.carbonIntensity = Math.round(regionalIntensity * intensityMultiplier);
+        state.generationMix = regionalMix;
+        state.hourlyForecast = simulated.forecast.map(s => ({
+          time: s.time,
+          intensity: Math.round(s.intensity * (state.carbonIntensity / (simulated.intensity || 120)))
+        }));
+        state.isLive = false;
+        
+        if (liveIndicator && liveStatusText) {
+          liveIndicator.classList.remove('live-active');
+          liveIndicator.classList.add('live-simulated');
+          liveStatusText.innerText = 'FORCED SIM';
+        }
+        renderGridUI();
+      } else {
+        // Live Fetch
+        let actualIntensity = 120;
+        let liveMix = [];
+        let liveForecast = [];
+        
+        if (isNational) {
+          const resIntensity = await fetch(API_INTENSITY, { method: 'GET', mode: 'cors' });
+          if (!resIntensity.ok) throw new Error('Failed to fetch intensity');
+          const dataInt = await resIntensity.json();
+          actualIntensity = dataInt.data[0].intensity.actual || dataInt.data[0].intensity.forecast || 120;
+
+          const resGen = await fetch(API_GENERATION, { method: 'GET', mode: 'cors' });
+          if (!resGen.ok) throw new Error('Failed to fetch generation mix');
+          const dataGen = await resGen.json();
+          liveMix = dataGen.data.generationmix;
+        } else {
+          const resReg = await fetch(`https://api.carbonintensity.org.uk/regional/regionid/${regionId}`, { method: 'GET', mode: 'cors' });
+          if (!resReg.ok) throw new Error('Failed to fetch regional data');
+          const dataReg = await resReg.json();
+          const d = dataReg.data[0];
+          const regData = d.data[0];
+          actualIntensity = regData.intensity.forecast || regData.intensity.actual || 120;
+          liveMix = regData.generationmix || [];
+        }
+        
+        // Fetch national forecast to scale for regional
+        const todayStr = new Date().toISOString().split('T')[0];
+        const resForecast = await fetch(`${API_FORECAST}/${todayStr}`, { method: 'GET', mode: 'cors' });
+        if (resForecast.ok) {
+          const dataForecast = await resForecast.json();
+          
+          let nationalIntensity = actualIntensity;
+          if (!isNational) {
+            try {
+              const resNat = await fetch(API_INTENSITY, { method: 'GET', mode: 'cors' });
+              if (resNat.ok) {
+                const dataNat = await resNat.json();
+                nationalIntensity = dataNat.data[0].intensity.actual || dataNat.data[0].intensity.forecast || 120;
+              }
+            } catch(e) {}
+          }
+          const ratio = isNational ? 1.0 : (actualIntensity / (nationalIntensity || 120));
+          
+          liveForecast = dataForecast.data.slice(0, 12).map(slot => {
+            const dateObj = new Date(slot.from);
+            const timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            return {
+              time: timeStr,
+              intensity: Math.round(slot.intensity.forecast * ratio)
+            };
+          });
+        }
+        
+        state.carbonIntensity = Math.round(actualIntensity * intensityMultiplier);
+        state.generationMix = liveMix.sort((a, b) => b.perc - a.perc);
+        state.hourlyForecast = liveForecast.length > 0 ? liveForecast : getSimulatedGridData().forecast.map(s => ({
+          time: s.time,
+          intensity: Math.round(s.intensity * intensityMultiplier)
+        }));
+        state.isLive = true;
+        
+        if (liveIndicator && liveStatusText) {
+          liveIndicator.classList.add('live-active');
+          liveIndicator.classList.remove('live-simulated');
+          liveStatusText.innerText = isNational ? 'UK GRID LIVE' : `${LOCAL_REGION_DATA[regionId]?.name.toUpperCase() || 'REGIONAL'} LIVE`;
+        }
+        renderGridUI();
+      }
+    } catch (error) {
+      console.warn('Grid API fetch failed, resorting to simulated grid data:', error);
       const simulated = getSimulatedGridData();
-      state.carbonIntensity = Math.round(simulated.intensity * intensityMultiplier);
-      state.generationMix = simulated.mix;
+      let regionalIntensity = simulated.intensity;
+      let regionalMix = simulated.mix;
+      
+      if (!isNational) {
+        const regMeta = LOCAL_REGION_DATA[regionId];
+        if (regMeta) {
+          const factor = simulated.intensity / 120.0;
+          regionalIntensity = Math.round(regMeta.typicalIntensity * factor);
+          regionalMix = regMeta.typicalMix || simulated.mix;
+        }
+      }
+      
+      state.carbonIntensity = Math.round(regionalIntensity * intensityMultiplier);
+      state.generationMix = regionalMix;
       state.hourlyForecast = simulated.forecast.map(s => ({
         time: s.time,
-        intensity: Math.round(s.intensity * intensityMultiplier)
+        intensity: Math.round(s.intensity * (state.carbonIntensity / (simulated.intensity || 120)))
       }));
       state.isLive = false;
       
-      const liveIndicator = document.getElementById('live-indicator');
-      const liveStatusText = document.getElementById('live-status-text');
       if (liveIndicator && liveStatusText) {
         liveIndicator.classList.remove('live-active');
         liveIndicator.classList.add('live-simulated');
-        liveStatusText.innerText = 'FORCED SIM';
+        liveStatusText.innerText = isNational ? 'UK GRID SIM' : `${LOCAL_REGION_DATA[regionId]?.name.toUpperCase() || 'REGIONAL'} SIM`;
       }
       renderGridUI();
-    } else {
-      // Fallback/standard update
-      await originalUpdateGrid();
-      // Apply offset if live
-      state.carbonIntensity = Math.round(state.carbonIntensity * intensityMultiplier);
-      state.hourlyForecast = state.hourlyForecast.map(s => ({
-        time: s.time,
-        intensity: Math.round(s.intensity * intensityMultiplier)
-      }));
-      renderGridUI();
+    } finally {
+      isGridUpdateInFlight = false;
     }
   };
 

@@ -275,3 +275,57 @@ body > div:first-child { height: 100%; }
   border-color: var(--green) !important;
 }
 
+/* =============================================================
+   Model Specification Box Polish & Responsiveness
+   ============================================================= */
+.model-spec-box {
+  padding: 16px !important;
+  gap: 10px !important;
+}
+
+.spec-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important; /* Top-align badge with wrapping text */
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+}
+
+.spec-label {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  word-break: break-word !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+}
+
+.badge {
+  white-space: nowrap !important; /* Prevent text wrapping inside badge */
+  flex-shrink: 0 !important; /* Keep badge shape intact */
+  font-size: 0.7rem !important;
+  padding: 3px 10px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: flex-start !important;
+}
+
+.spec-stats {
+  display: flex !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important; /* Wrap stats on smaller screens */
+}
+
+.stat-item {
+  min-width: 100px;
+}
+
+.spec-slogan {
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+  word-break: break-word !important;
+  padding-top: 8px !important;
+  margin-top: 4px !important;
+}
+
