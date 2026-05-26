@@ -714,104 +714,17 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
     displayName = `Eco-Router -> ${MODELS[activeModelKey].name}`;
   }
   
-  const complexity = analyzePromptComplexity(promptText);
-  const localCitySelect = document.getElementById('local-city-select');
-  const activeRegionName = localCitySelect ? localCitySelect.options[localCitySelect.selectedIndex].text : 'United Kingdom (National Average)';
-  
   const metrics = calculateCarbonMetrics(promptText, simulatedOutput, activeModelKey, state.carbonIntensity);
   
-  let routingReasons = [];
-  if (state.selectedModel === 'eco-router') {
-    const route = runEcoRouting(promptText, state.carbonIntensity);
-    routingReasons = route.decisionTrace;
-  } else {
-    routingReasons.push(`Manual Mode Bypass: User selected "${MODELS[state.selectedModel].name}".`);
-    routingReasons.push(`Prompt complexity analyzed: ${complexity.level} (${complexity.reason}).`);
-    if (state.attachments && state.attachments.length > 0) {
-      routingReasons.push(`Multimodal attachments present: upgraded context parameters.`);
-    }
-    routingReasons.push(`Current Local Grid Intensity: ${state.carbonIntensity} gCO₂/kWh (${activeRegionName}).`);
-  }
-
-  let attachmentsDetails = '';
-  if (state.attachments && state.attachments.length > 0) {
-    attachmentsDetails = `
-      <div class="report-section" style="margin-top: 8px;">
-        <span class="report-section-title">> Document / File Analysis:</span>
-        ${state.attachments.map(att => `
-          <div class="report-bullet" style="font-size: 0.72rem; color: #a2baa8;">
-            "${att.name}" (${att.type}) — Size: ${formatBytes(att.size)} • Token Overhead: <strong>+${att.tokens}</strong>
-          </div>
-        `).join('')}
-      </div>
-      <div class="report-divider-line"></div>
-    `;
-  }
-  
-  terminalBody.innerHTML = `
-    <div class="routing-report-container">
-      <div class="report-title-row">
-        <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
-        <span>Routing & Carbon Impact Analysis Report</span>
-      </div>
-      
-      <div class="report-divider-line"></div>
-      
-      <div class="report-section">
-        <span class="report-section-title">> Parameters & Context:</span>
-        <div class="report-grid">
-          <div class="report-grid-item">
-            <span>Prompt Length:</span>
-            <span class="report-grid-val">${promptText.length} chars</span>
-          </div>
-          <div class="report-grid-item">
-            <span>Estimated Prompt Tokens:</span>
-            <span class="report-grid-val">${estimateTokens(promptText)}</span>
-          </div>
-          <div class="report-grid-item">
-            <span>Total Combined Input:</span>
-            <span class="report-grid-val">${estimateTokens(promptText) + (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0)} tokens</span>
-          </div>
-          <div class="report-grid-item">
-            <span>Region / Local Grid:</span>
-            <span class="report-grid-val" style="color: #60a5fa; text-align: right; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${activeRegionName}">${activeRegionName}</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="report-divider-line"></div>
-      
-      ${attachmentsDetails}
-      
-      <div class="report-section">
-        <span class="report-section-title">> Model Routing Decision Rationale:</span>
-        ${routingReasons.map(r => `<div class="report-bullet">${r}</div>`).join('')}
-      </div>
-      
-      <div class="report-divider-line"></div>
-      
-      <div class="report-section">
-        <span class="report-section-title">> Ecological Impact Audit Summary:</span>
-        <div class="report-grid">
-          <div class="report-grid-item">
-            <span>Calculated Energy (Wh):</span>
-            <span class="report-grid-val" style="color: #38bdf8;">${metrics.energyWh.toFixed(3)} Wh</span>
-          </div>
-          <div class="report-grid-item">
-            <span>Emissions Footprint (gCO₂):</span>
-            <span class="report-grid-val" style="color: #4ade80;">${metrics.co2Grams.toFixed(4)} g</span>
-          </div>
-          <div class="report-grid-item">
-            <span>Cooling Water (ml):</span>
-            <span class="report-grid-val" style="color: #22d3ee;">${metrics.waterMl.toFixed(1)} ml</span>
-          </div>
-          <div class="report-grid-item">
-            <span>GPU E-Waste (mg):</span>
-            <span class="report-grid-val" style="color: #f87171;">${metrics.ewasteMg.toFixed(3)} mg</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  // Cleanly append the resource consumption details directly under the document analysis logs in the terminal
+  terminalBody.innerHTML += `
+    <div class="term-divider"></div>
+    <div class="term-line text-success">> Audit Complete. Resource Consumption Details:</div>
+    <div class="term-line font-mono">> Routed Model: ${displayName}</div>
+    <div class="term-line font-mono">> Energy Consumption: <strong style="color: #38bdf8;">${metrics.energyWh.toFixed(3)} Wh</strong></div>
+    <div class="term-line font-mono">> Emissions Footprint: <strong style="color: #4ade80;">${metrics.co2Grams.toFixed(4)} g CO₂</strong></div>
+    <div class="term-line font-mono">> Cooling Water: <strong style="color: #22d3ee;">${metrics.waterMl.toFixed(1)} ml</strong></div>
+    <div class="term-line font-mono">> Hardware wear (E-Waste): <strong style="color: #f87171;">${metrics.ewasteMg.toFixed(3)} mg</strong></div>
   `;
   
   // Compute session savings compared to running on 'gpt-4-opus' (the worst-case model)
