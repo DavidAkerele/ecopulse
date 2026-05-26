@@ -577,3 +577,72 @@ body > div:first-child { height: 100%; }
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* ---- Routing & Carbon Impact Report Terminal Styling ---- */
+.routing-report-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.015);
+  border-left: 2px solid var(--green);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  margin: 10px 0;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-main);
+}
+.report-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--green);
+}
+.report-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.report-section-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+.report-grid-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  padding-bottom: 2px;
+}
+.report-grid-val {
+  color: #fff;
+  font-weight: 500;
+}
+.report-bullet {
+  position: relative;
+  padding-left: 14px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.8);
+}
+.report-bullet::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  color: var(--green);
+}
+.report-divider-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 4px 0;
+}
