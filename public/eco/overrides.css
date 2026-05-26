@@ -13,7 +13,7 @@ html, body {
 body > div:first-child { height: 100%; }
 .app-layout { height: 100vh; max-height: 100vh; }
 
-/* ---- Animated Video & Static background fallback ---- */
+/* ---- Static background with full visibility ---- */
 .video-bg-container {
   position: fixed;
   inset: 0;
@@ -22,14 +22,7 @@ body > div:first-child { height: 100%; }
   pointer-events: none;
 }
 .video-bg-container::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(16, 185, 129, 0.18), transparent 60%),
-    radial-gradient(ellipse at 100% 100%, rgba(14, 165, 233, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(5, 8, 6, 0.55) 0%, rgba(5, 8, 6, 0.92) 100%);
-  z-index: 2;
+  display: none;
 }
 .static-bg {
   position: absolute;
@@ -37,8 +30,8 @@ body > div:first-child { height: 100%; }
   background-image: url("/eco/bg.png");
   background-size: cover;
   background-position: center;
-  filter: saturate(0.85) brightness(0.55);
-  opacity: 0.55;
+  filter: brightness(0.85);
+  opacity: 0.95;
   transform: scale(1.04);
   z-index: 0;
 }
