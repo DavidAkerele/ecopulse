@@ -1,0 +1,232 @@
+/* =============================================================
+   EcoPulse — UI optimization overrides
+   Polish, alignment, density, responsiveness, perf.
+   Loaded AFTER styles.css so these rules win.
+   ============================================================= */
+
+/* ---- Lock viewport so app-layout(height:100vh) fits exactly ---- */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+body > div:first-child { height: 100%; }
+.app-layout { height: 100vh; max-height: 100vh; }
+
+/* ---- Static background (replaces heavy autoplay video) ---- */
+.video-bg-container {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.video-bg-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(16, 185, 129, 0.18), transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(14, 165, 233, 0.12), transparent 55%),
+    linear-gradient(180deg, rgba(5, 8, 6, 0.55) 0%, rgba(5, 8, 6, 0.92) 100%);
+}
+.static-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url("/eco/bg.png");
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.85) brightness(0.55);
+  opacity: 0.55;
+  transform: scale(1.04);
+}
+
+/* ---- Terminal: stop content bleeding past rounded corners ---- */
+.card-terminal {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.card-terminal .terminal-body {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* ---- Tighten vertical sprawl in the main bento column ---- */
+.bottom-bento-grid {
+  height: calc(100vh - 110px);
+  gap: 16px;
+}
+.bento-column { gap: 16px; }
+
+.card-prompt { flex: 0 0 auto; }
+.card-prompt .text-area { min-height: 90px; max-height: 160px; }
+.card-prompt .card-body { gap: 12px; }
+.workspace-counters { margin: 4px 0; }
+
+.card-terminal { flex: 1 1 0; min-height: 200px; }
+.terminal-body { min-height: 120px; padding: 14px 16px; }
+
+/* Dial + Guide column balance */
+.dial-card { flex: 0 0 auto; }
+.guide-card { flex: 1 1 auto; }
+
+/* ---- Generic glass-card alignment polish ---- */
+.glass-card {
+  border-radius: 14px !important;
+}
+.card-header {
+  padding: 14px 18px !important;
+}
+.card-body {
+  padding: 16px 18px !important;
+}
+
+/* ---- Top pill bar: less wasted width, consistent height ---- */
+.top-pill-bar {
+  padding: 8px 14px !important;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pill-divider { height: 20px; }
+
+/* ---- Right sidebar tabs: pill container, all 4 visible ---- */
+.sidebar-tabs {
+  display: flex !important;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 9999px !important;
+  padding: 3px !important;
+  gap: 2px;
+  flex: 0 0 auto !important;
+  min-height: 38px;
+}
+.tab-btn {
+  flex: 1 1 0 !important;
+  min-width: 0;
+  white-space: nowrap;
+  padding: 8px 6px !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0;
+  text-align: center;
+  border-radius: 9999px !important;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+/* ---- Sidebar nav: reserve icon space so layout doesn't jump ---- */
+.nav-item { width: 44px; height: 44px; }
+.nav-item svg,
+.nav-item i[data-lucide] {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+}
+
+/* ---- Metric blocks: tighter, aligned grid ---- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.metric-block {
+  padding: 10px 12px !important;
+  gap: 8px;
+  min-width: 0;
+}
+.metric-data { min-width: 0; }
+.metric-val { font-size: 0.88rem !important; white-space: nowrap; }
+.metric-lbl { font-size: 0.65rem !important; }
+
+/* ---- Analogies: even 4-col grid ---- */
+.analogies-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.analogy-item { padding: 8px 10px !important; }
+
+/* ---- Right sidebar content scroll ---- */
+.right-sidebar {
+  width: 360px !important;
+  padding: 20px 16px !important;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.right-sidebar-content {
+  padding: 0 4px 0 0 !important;
+  gap: 14px !important;
+  margin-top: 12px !important;
+}
+
+/* ---- Gauge: better centered ---- */
+.gauge-container { margin: 4px auto; }
+.dial-body { padding-bottom: 12px; }
+
+/* ---- Forecast bars baseline ---- */
+.forecast-chart { gap: 4px; align-items: flex-end; min-height: 100px; }
+
+/* =============================================================
+   Responsive — Laptop ≤ 1366
+   ============================================================= */
+@media (max-width: 1366px) {
+  .right-sidebar { width: 340px !important; }
+  .bottom-bento-grid { grid-template-columns: 1.6fr 1fr; }
+  .tab-btn { padding: 7px 10px !important; font-size: 0.72rem !important; }
+}
+
+/* =============================================================
+   Tablet ≤ 1100
+   ============================================================= */
+@media (max-width: 1100px) {
+  .app-layout { flex-direction: column; height: auto; }
+  .sidebar-nav {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    padding: 10px 14px;
+    border-right: none;
+    border-bottom: 1px solid rgba(162, 186, 168, 0.1);
+  }
+  .sidebar-menu, .sidebar-bottom { flex-direction: row; gap: 8px; }
+  .main-viewport { height: auto; padding: 16px; overflow: visible; }
+  .bottom-bento-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .right-sidebar {
+    width: 100% !important;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid rgba(162, 186, 168, 0.1);
+  }
+  .right-sidebar-content { max-height: none; }
+}
+
+/* =============================================================
+   Mobile ≤ 640
+   ============================================================= */
+@media (max-width: 640px) {
+  .top-pill-bar { gap: 6px; padding: 8px 10px !important; }
+  .pill-divider { display: none; }
+  .savings-badge, .score-badge { font-size: 0.7rem; padding: 4px 8px; }
+  .pill-title { font-size: 0.8rem; }
+  .metrics-grid, .analogies-grid { grid-template-columns: repeat(2, 1fr); }
+  .workspace-counters { gap: 6px; }
+  .counter-num { font-size: 0.9rem; }
+  .card-header h2 { font-size: 0.9rem; }
+  .terminal-body { font-size: 0.75rem; }
+  .main-viewport { padding: 12px; }
+}
+
+/* ---- Perf: avoid blur on backdrop on weak devices ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
