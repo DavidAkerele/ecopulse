@@ -2164,9 +2164,9 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       elementSelector: '.right-sidebar',
-      title: 'Telemetry, Challenges & Quiz',
-      description: 'Examine detailed carbon footprint metrics. Toggle tabs to see your weekly developer Challenges, or take the timed interactive Green Quiz!',
-      position: 'fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);'
+      title: 'Telemetry, Impact & Budget',
+      description: 'Examine detailed carbon footprint metrics. Toggle tabs to see model recommendations, check your local Carbon Impact, or manage your daily Carbon Budget!',
+      position: 'left'
     }
   ];
 
