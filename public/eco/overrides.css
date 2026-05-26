@@ -229,6 +229,7 @@ body > div:first-child { height: 100%; }
   .card-header h2 { font-size: 0.9rem; }
   .terminal-body { font-size: 0.75rem; }
   .main-viewport { padding: 12px; }
+  .workspace-actions-bar { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
 /* ---- Perf: avoid blur on backdrop on weak devices ---- */
@@ -331,16 +332,19 @@ body > div:first-child { height: 100%; }
 
 /* ---- Multimodal File Imports & Recording Styles ---- */
 .workspace-actions-bar {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 6px;
-  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .action-btn-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 6px;
   padding: 6px 12px;
   font-family: 'Outfit', sans-serif;
@@ -352,6 +356,8 @@ body > div:first-child { height: 100%; }
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .action-btn-trigger i {
@@ -646,3 +652,14 @@ body > div:first-child { height: 100%; }
   background: rgba(255, 255, 255, 0.05);
   margin: 4px 0;
 }
+
+/* ---- Remove dark background overlay from the parent bento grid container ---- */
+.main-viewport,
+.bottom-bento-grid,
+.bento-column {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+

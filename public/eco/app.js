@@ -65,7 +65,7 @@ const state = {
   carbonIntensity: 120, // default moderate
   generationMix: [],
   hourlyForecast: [],
-  selectedRegionId: '3', // default to Manchester (North West)
+  selectedRegionId: 'national', // default to United Kingdom (National Average)
   attachments: [], // Multimodal attachments tray
   inputTokens: 0,
   outputTokens: 0,
@@ -461,7 +461,7 @@ function renderGridUI() {
   // Set card title dynamically based on selected region
   const dialCardHeader = document.querySelector('.dial-card .card-header h2');
   if (dialCardHeader) {
-    const regionId = state.selectedRegionId || '3';
+    const regionId = state.selectedRegionId || 'national';
     const regionName = LOCAL_REGION_DATA[regionId]?.name || 'UK';
     dialCardHeader.textContent = regionId === 'national' ? 'UK Grid Coefficient' : `${regionName} Grid Coefficient`;
   }
@@ -2399,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchLocalRegionData(regionId);
     });
     
-    // Auto-fetch default region (Manchester) on first load
+    // Auto-fetch default region (National Average) on first load
     fetchLocalRegionData(localCitySelect.value);
   }
   
@@ -2511,7 +2511,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const liveIndicator = document.getElementById('live-indicator');
     const liveStatusText = document.getElementById('live-status-text');
-    const regionId = state.selectedRegionId || '3';
+    const regionId = state.selectedRegionId || 'national';
     const isNational = (regionId === 'national');
 
     try {
