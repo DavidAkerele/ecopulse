@@ -219,13 +219,13 @@ function runEcoRouting(promptText, gridIntensity) {
     decisionTrace.push(`Low complexity routes to Small tier (Llama 8B / Flash).`);
   }
   
-  // 2. Throttling/downgrading logic if grid carbon emissions are high (> 150)
+  // 2. Throttling/downgrading logic if grid carbon emissions are high (> 120)
   let routedModelKey = baseModelKey;
   let throttled = false;
   
-  if (gridIntensity > 150) {
+  if (gridIntensity > 120) {
     throttled = true;
-    decisionTrace.push(`Grid carbon emissions exceed 150 gCO₂/kWh. Activating emissions throttle...`);
+    decisionTrace.push(`Grid carbon emissions exceed 120 gCO₂/kWh. Activating emissions throttle...`);
     if (baseModelKey === 'gpt-4-opus') {
       routedModelKey = 'gpt-4o-sonnet';
       decisionTrace.push(`Downgraded Opus (XL) -> Sonnet (L) to conserve power.`);
@@ -421,13 +421,13 @@ function getSimulatedGridData() {
     solarPerc = Math.max(5, Math.round(25 * Math.sin((hour - 7) * Math.PI / 10)));
   }
   
-  if (intensity > 150) {
-    gasPerc = Math.round(40 + (intensity - 150) * 0.4);
-    windPerc = Math.max(10, Math.round(30 - (intensity - 150) * 0.3));
+  if (intensity > 120) {
+    gasPerc = Math.round(40 + (intensity - 120) * 0.4);
+    windPerc = Math.max(10, Math.round(30 - (intensity - 120) * 0.3));
     coalPerc = intensity > 200 ? 2 : 0;
   } else {
-    windPerc = Math.round(45 + (150 - intensity) * 0.5);
-    gasPerc = Math.max(5, Math.round(25 - (150 - intensity) * 0.3));
+    windPerc = Math.round(45 + (120 - intensity) * 0.5);
+    gasPerc = Math.max(5, Math.round(25 - (120 - intensity) * 0.3));
   }
   
   // Normalize percentages to sum to 100
@@ -467,7 +467,7 @@ function getSimulatedGridData() {
     intensity,
     mix,
     forecast,
-    index: intensity < 75 ? 'very low' : intensity < 150 ? 'moderate' : 'high'
+    index: intensity < 75 ? 'very low' : intensity < 120 ? 'moderate' : 'high'
   };
 }
 
@@ -548,13 +548,13 @@ async function updateGridMetrics() {
 // Green -> Orange -> Red
 function getIntensityColor(intensity) {
   if (intensity < 75) return '#22c55e'; // Emerald
-  if (intensity < 150) return '#f97316'; // Orange
+  if (intensity < 120) return '#f97316'; // Orange
   return '#ef4444'; // Red
 }
 
 function getIntensityLabel(intensity) {
   if (intensity < 75) return 'Clean (Low Carbon)';
-  if (intensity < 150) return 'Moderate Intensity';
+  if (intensity < 120) return 'Moderate Intensity';
   return 'Dirty (High Carbon)';
 }
 
@@ -726,7 +726,7 @@ function renderDatacenterUI() {
   if (staticBg) {
     if (state.carbonIntensity < 75) {
       staticBg.style.backgroundImage = 'url("/eco/bg.png")';
-    } else if (state.carbonIntensity < 150) {
+    } else if (state.carbonIntensity < 120) {
       staticBg.style.backgroundImage = 'url("/eco/bg_moderate.jpg")';
     } else {
       staticBg.style.backgroundImage = 'url("/eco/bg_dirty.jpg")';
@@ -1080,7 +1080,7 @@ function runCarbonAudit() {
             
             setTimeout(() => {
               if (route.throttled) {
-                terminalBody.innerHTML += `<div class="term-line text-warning">> [Router] Carbon Throttle Active: Grid emissions > 150 gCO₂/kWh. Downgrading target model 1 tier.</div>`;
+                terminalBody.innerHTML += `<div class="term-line text-warning">> [Router] Carbon Throttle Active: Grid emissions > 120 gCO₂/kWh. Downgrading target model 1 tier.</div>`;
               } else if (state.carbonIntensity < 75 && route.complexity === 'High') {
                 terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Carbon Grid Optimal: Grid emissions < 75 gCO₂/kWh. Permitting premium model upgrade.</div>`;
               } else {
@@ -1788,7 +1788,7 @@ async function fetchLocalRegionData(regionId) {
     regionId,
     name: LOCAL_REGION_DATA[regionId]?.name || 'Selected Region',
     intensity: state.carbonIntensity,
-    index: state.carbonIntensity < 75 ? 'very low' : state.carbonIntensity < 150 ? 'moderate' : 'high',
+    index: state.carbonIntensity < 75 ? 'very low' : state.carbonIntensity < 120 ? 'moderate' : 'high',
     generationmix: state.generationMix,
     live: state.isLive,
   };
@@ -1864,7 +1864,7 @@ function renderLocalImpactUI() {
   }
   if (regionCard) {
     regionCard.className = 'local-region-card' +
-      (intensity >= 150 ? ' state-high' : intensity >= 75 ? ' state-moderate' : '');
+      (intensity >= 120 ? ' state-high' : intensity >= 75 ? ' state-moderate' : '');
   }
   if (pulseEl) {
     pulseEl.style.background = getIntensityColor(intensity);
