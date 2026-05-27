@@ -118,6 +118,25 @@ function Index() {
         await loadTiktoken();
         if (cancelled) return;
 
+        // Load Supabase if environment variables are configured
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseAnonKey) {
+          // @ts-expect-error set global keys
+          window.SUPABASE_URL = supabaseUrl;
+          // @ts-expect-error set global keys
+          window.SUPABASE_ANON_KEY = supabaseAnonKey;
+          
+          await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js");
+          if (cancelled) return;
+          
+          // @ts-expect-error global from CDN
+          if (typeof window !== "undefined" && window.supabase?.createClient) {
+            // @ts-expect-error global from CDN
+            window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+          }
+        }
+
         await loadScript("/eco/app.js");
         if (cancelled) return;
         document.dispatchEvent(new Event("DOMContentLoaded"));
@@ -145,68 +164,132 @@ function Index() {
     .preloader-overlay {
       position: fixed;
       inset: 0;
-      background: #050806;
+      background: radial-gradient(circle at center, #0b1510 0%, #030504 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 99999;
-      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       opacity: 1;
     }
     .preloader-overlay.fade-out {
       opacity: 0;
       pointer-events: none;
     }
-    .preloader-content {
+    .preloader-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      padding: 36px 48px;
+      background: rgba(11, 21, 16, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(16, 185, 129, 0.15);
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(16, 185, 129, 0.05);
+      gap: 24px;
+      animation: preloader-card-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     .preloader-icon-wrap {
       position: relative;
-      width: 72px;
-      height: 72px;
+      width: 90px;
+      height: 90px;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+      border-radius: 50%;
     }
     .preloader-icon {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       object-fit: contain;
-      z-index: 2;
-      animation: logo-bounce 2s infinite ease-in-out;
+      z-index: 3;
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+      animation: logo-pulse 2s infinite ease-in-out;
     }
-    .preloader-ring {
+    .preloader-ring-outer {
       position: absolute;
       inset: 0;
-      border: 2px solid rgba(16, 185, 129, 0.1);
-      border-top-color: #10b981;
+      border: 2px solid transparent;
+      border-top: 2px solid #10b981;
+      border-right: 2px solid #10b981;
       border-radius: 50%;
-      animation: preloader-spin 1.2s infinite linear;
+      animation: preloader-spin-clockwise 1.8s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+      z-index: 2;
+      filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.3));
+    }
+    .preloader-ring-inner {
+      position: absolute;
+      inset: 8px;
+      border: 1.5px solid transparent;
+      border-bottom: 1.5px solid #34d399;
+      border-left: 1.5px solid #34d399;
+      border-radius: 50%;
+      animation: preloader-spin-counter 1.4s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
       z-index: 1;
+      opacity: 0.7;
+    }
+    .preloader-text-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
     .preloader-text {
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      color: #10b981;
-      opacity: 0.8;
-      animation: preloader-fade 1.5s infinite ease-in-out;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: #34d399;
+      text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+      animation: text-pulse 2s infinite ease-in-out;
     }
-    @keyframes preloader-spin {
+    .preloader-progress {
+      width: 120px;
+      height: 2px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .preloader-progress-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      animation: progress-scan 2s infinite ease-in-out;
+      transform-origin: left;
+    }
+    @keyframes preloader-card-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes preloader-spin-clockwise {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    @keyframes logo-bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
+    @keyframes preloader-spin-counter {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
     }
-    @keyframes preloader-fade {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.85; }
+    @keyframes logo-pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.3)); }
+      50% { transform: scale(1.06); filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6)); }
+    }
+    @keyframes text-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    @keyframes progress-scan {
+      0% { transform: scaleX(0); transform-origin: left; }
+      49% { transform: scaleX(1); transform-origin: left; }
+      50% { transform: scaleX(1); transform-origin: right; }
+      100% { transform: scaleX(0); transform-origin: right; }
     }
   `;
 
@@ -215,12 +298,18 @@ function Index() {
       <div ref={ref}>
         <style dangerouslySetInnerHTML={{ __html: preloaderStyles }} />
         <div id="app-preloader" className="preloader-overlay">
-          <div className="preloader-content">
+          <div className="preloader-card">
             <div className="preloader-icon-wrap">
               <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
-              <div className="preloader-ring"></div>
+              <div className="preloader-ring-outer"></div>
+              <div className="preloader-ring-inner"></div>
             </div>
-            <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+            <div className="preloader-text-wrapper">
+              <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+              <div className="preloader-progress">
+                <div className="preloader-progress-bar"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -231,12 +320,18 @@ function Index() {
     <div ref={ref}>
       <style dangerouslySetInnerHTML={{ __html: preloaderStyles }} />
       <div id="app-preloader" className="preloader-overlay">
-        <div className="preloader-content">
+        <div className="preloader-card">
           <div className="preloader-icon-wrap">
             <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
-            <div className="preloader-ring"></div>
+            <div className="preloader-ring-outer"></div>
+            <div className="preloader-ring-inner"></div>
           </div>
-          <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+          <div className="preloader-text-wrapper">
+            <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+            <div className="preloader-progress">
+              <div className="preloader-progress-bar"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div dangerouslySetInnerHTML={{ __html: ECO_BODY }} />

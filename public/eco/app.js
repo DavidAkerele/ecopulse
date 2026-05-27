@@ -92,7 +92,7 @@ const state = {
   selectedModel: 'eco-router',
   gridData: null,
   isLive: false,
-  carbonIntensity: 120, // default moderate
+  carbonIntensity: 60, // default low / green
   generationMix: [],
   hourlyForecast: [],
   selectedRegionId: 'national', // default to United Kingdom (National Average)
@@ -536,6 +536,8 @@ async function updateGridMetrics() {
   } finally {
     // Trigger UI layout updates
     renderGridUI();
+    // Log grid observation to Supabase if connected
+    logGridObservationToSupabase();
     isGridUpdateInFlight = false;
   }
 }
@@ -941,6 +943,9 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
   // Record audit in session history logs
   addAuditToHistory(promptText, activeModelKey, metrics.co2Grams, metrics.energyWh);
   
+  // Log audit to Supabase database if connected
+  logAuditEventToSupabase(promptText, simulatedOutput, activeModelKey, metrics);
+  
   const termContainer = document.getElementById('terminal-container');
   if (termContainer) {
     termContainer.scrollTop = termContainer.scrollHeight;
@@ -1238,6 +1243,9 @@ window.switchModel = function(modelKey) {
   // Flash visual feedback
   modelSelect.classList.add('flash-highlight');
   setTimeout(() => modelSelect.classList.remove('flash-highlight'), 600);
+
+  // Mark recommendation adopted
+  markRecommendationAdopted('Model Swap');
 };
 
 // Simulate scheduling the execution
@@ -1263,6 +1271,9 @@ window.simulateSchedule = function(time, savingsPercent) {
 
   // Peak Shifter challenge progress
   updateChallengeProgress('peakShifter', 1);
+
+  // Mark recommendation adopted
+  markRecommendationAdopted('Peak Shifting');
 };
 
 // Update model specifications box on selector change
@@ -3226,4 +3237,394 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize Lucide Icons
   lucide.createIcons();
+
+  // Initialize Supabase Analytics Session (asynchronous)
+  getOrCreateSession();
+
+  // Global interface interaction click tracking
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('button, a, [role="button"], .rec-action-btn');
+    if (!target) return;
+    
+    const elementType = target.tagName.toLowerCase();
+    let elementId = target.id || target.getAttribute('aria-label');
+    if (!elementId) {
+      const innerText = target.innerText ? target.innerText.trim().replace(/\s+/g, '-').toLowerCase() : '';
+      if (innerText && innerText.length < 30) {
+        elementId = innerText;
+      } else {
+        elementId = target.className ? target.className.split(' ')[0] : 'unnamed-element';
+      }
+    }
+    
+    let context = {};
+    if (target.dataset) {
+      context = { ...target.dataset };
+    }
+    
+    logClickEventToSupabase(elementId, elementType, 'click', context);
+  });
+
+  // Global select element change tracking
+  document.addEventListener('change', (e) => {
+    const target = e.target;
+    if (target.tagName.toLowerCase() !== 'select') return;
+    
+    const elementId = target.id || target.className || 'unnamed-select';
+    const context = {
+      selected_value: target.value
+    };
+    
+    logClickEventToSupabase(elementId, 'select', 'change', context);
+  });
 });
+
+// =============================================================
+// Supabase Analytics Integration Helpers
+// =============================================================
+
+async function sha256(message) {
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    // Basic fallback hash for offline / legacy support
+    let hash = 0;
+    for (let i = 0; i < message.length; i++) {
+      hash = (hash << 5) - hash + message.charCodeAt(i);
+      hash |= 0;
+    }
+    return 'fallback-' + Math.abs(hash).toString(16);
+  }
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+let sessionPromise = null;
+async function getOrCreateSession() {
+  if (sessionPromise) return sessionPromise;
+  
+  sessionPromise = (async () => {
+    let sessionId = sessionStorage.getItem('ecopulse_session_id');
+    const hasClient = typeof window !== 'undefined' && window.supabaseClient;
+    
+    if (!sessionId) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        sessionId = crypto.randomUUID();
+      } else {
+        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      sessionStorage.setItem('ecopulse_session_id', sessionId);
+    }
+    
+    if (hasClient) {
+      try {
+        const ua = navigator.userAgent || 'unknown';
+        const uaHash = await sha256(ua);
+        const referrer = document.referrer || 'direct';
+        
+        let deviceCategory = 'desktop';
+        const width = window.innerWidth;
+        if (width < 768) {
+          deviceCategory = 'mobile';
+        } else if (width < 1024) {
+          deviceCategory = 'tablet';
+        }
+        
+        const { error } = await window.supabaseClient
+          .from('user_sessions')
+          .upsert({
+            session_id: sessionId,
+            user_agent_hash: uaHash,
+            referrer: referrer.substring(0, 255),
+            device_category: deviceCategory,
+            last_active_at: new Date().toISOString()
+          });
+          
+        if (error) {
+          console.warn('Supabase: failed to upsert user session:', error);
+        }
+      } catch (err) {
+        console.warn('Supabase: error initializing user session:', err);
+      }
+    }
+    return sessionId;
+  })();
+  
+  return sessionPromise;
+}
+
+async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelKey, metrics) {
+  const hasClient = typeof window !== 'undefined' && window.supabaseClient;
+  if (!hasClient) {
+    console.log('Supabase [Mock Mode]: Audit event logged for prompt length:', promptText.length);
+    return;
+  }
+  
+  try {
+    const sessionId = await getOrCreateSession();
+    const isRouter = state.selectedModel === 'eco-router';
+    const comp = analyzePromptComplexity(promptText);
+    const workload = classifyWorkloadClass(promptText, state.attachments);
+    
+    const { data, error } = await window.supabaseClient
+      .from('audit_events')
+      .insert({
+        session_id: sessionId,
+        selected_model_id: state.selectedModel,
+        routed_model_id: activeModelKey,
+        was_routed: isRouter,
+        prompt_char_count: promptText.length,
+        prompt_token_estimate: state.inputTokens,
+        response_token_estimate: state.outputTokens,
+        total_tokens: state.inputTokens + state.outputTokens,
+        workload_class: workload,
+        complexity_level: comp.level,
+        estimated_kwh: metrics.energyWh / 1000.0,
+        estimated_co2_grams: metrics.co2Grams,
+        estimated_water_ml: metrics.waterMl,
+        estimated_ewaste_mg: metrics.ewasteMg,
+        grid_intensity_gco2_kwh: state.carbonIntensity,
+        region_id: state.selectedRegionId,
+        is_live_grid_data: state.isLive
+      })
+      .select('audit_id')
+      .single();
+      
+    if (error) {
+      console.warn('Supabase: failed to log audit event:', error);
+      return;
+    }
+    
+    const auditId = data?.audit_id;
+    if (!auditId) return;
+    
+    // Log recommendations associated with this audit
+    // 1. Model Swap Recommendation
+    if (activeModelKey !== 'llama3-8b-flash') {
+      const flashModel = metrics.alternatives.find(a => a.key === 'llama3-8b-flash');
+      if (flashModel) {
+        const savingsPct = flashModel.savingsPercent.toFixed(1);
+        const co2Saved = metrics.co2Grams - flashModel.co2;
+        await window.supabaseClient
+          .from('recommendations')
+          .insert({
+            session_id: sessionId,
+            audit_id: auditId,
+            rule_triggered: 'heavy_model_used',
+            advice_category: 'Model Swap',
+            action_suggested: `Running this query on Llama 3 8B / Gemini Flash instead would save approx ${savingsPct}% of carbon emissions (${co2Saved.toFixed(3)}g saved).`,
+            potential_co2_savings_grams: co2Saved,
+            is_adopted: false
+          });
+      }
+    }
+    
+    // 2. Peak Shifting Recommendation
+    let lowestSlot = state.hourlyForecast[0];
+    state.hourlyForecast.forEach(slot => {
+      if (slot.intensity < lowestSlot.intensity) {
+        lowestSlot = slot;
+      }
+    });
+    
+    const currentIntensity = state.carbonIntensity;
+    const lowestIntensity = lowestSlot.intensity;
+    
+    if (currentIntensity - lowestIntensity > 15) {
+      const timeSavingsPct = ((currentIntensity - lowestIntensity) / currentIntensity * 100).toFixed(0);
+      const potentialCo2Saved = ((currentIntensity - lowestIntensity) / currentIntensity) * metrics.co2Grams;
+      await window.supabaseClient
+        .from('recommendations')
+        .insert({
+          session_id: sessionId,
+          audit_id: auditId,
+          rule_triggered: 'high_intensity_peak_hours',
+          advice_category: 'Peak Shifting',
+          action_suggested: `The grid carbon intensity is forecasted to drop to ${lowestIntensity} gCO₂/kWh at ${lowestSlot.time}. Deferring this non-urgent batch request will reduce carbon footprint by ${timeSavingsPct}%.`,
+          potential_co2_savings_grams: potentialCo2Saved,
+          is_adopted: false
+        });
+    }
+    
+    // Update user session cumulative statistics
+    let totalAudits = parseInt(sessionStorage.getItem('ecopulse_total_audits') || '0', 10);
+    totalAudits += 1;
+    sessionStorage.setItem('ecopulse_total_audits', totalAudits.toString());
+    
+    await window.supabaseClient
+      .from('user_sessions')
+      .update({
+        total_audits_run: totalAudits,
+        total_co2_saved_grams: state.sessionSavingsCo2,
+        last_active_at: new Date().toISOString()
+      })
+      .eq('session_id', sessionId);
+      
+  } catch (err) {
+    console.warn('Supabase: error in logAuditEventToSupabase:', err);
+  }
+}
+
+function classifyWorkloadClass(text, attachments) {
+  if (attachments && attachments.length > 0) {
+    const firstType = attachments[0].type;
+    if (firstType && firstType.includes('image')) return 'image-analysis';
+    if (firstType && firstType.includes('audio')) return 'audio-transcription';
+    return 'document-processing';
+  }
+  if (!text) return 'conversational';
+  
+  const codePatterns = [
+    /\bdef\b/, /\bfunction\b/, /\bclass\b/, /\bconst\b/, /\bimport\b/, 
+    /\blet\b/, /\bvar\b/, /\breturn\b/, /\bconsole\.log\b/, /\bprintf?\b/,
+    /\bselect\s+.*\s+from\b/i, /<html>/i, /css/i, /[\{\}\[\]\(\)]/
+  ];
+  
+  const mathPatterns = [
+    /\bsqrt\b/i, /\bintegral\b/i, /\bmatrix\b/i, /\bequation\b/i,
+    /\bformula\b/i, /\bderive\b/i, /[\+\-\*\/=]{2,}/
+  ];
+  
+  let hasCode = codePatterns.some(pat => pat.test(text));
+  let hasMath = mathPatterns.some(pat => pat.test(text));
+  
+  if (hasCode) return 'coding';
+  if (hasMath) return 'mathematics';
+  if (text.length < 150) return 'conversational';
+  return 'general-purpose';
+}
+
+async function logClickEventToSupabase(elementId, elementType, interactionType, context = {}) {
+  const hasClient = typeof window !== 'undefined' && window.supabaseClient;
+  if (!hasClient) {
+    console.log('Supabase [Mock Mode]: Click event logged:', { elementId, elementType, interactionType, context });
+    return;
+  }
+  
+  try {
+    const sessionId = await getOrCreateSession();
+    await window.supabaseClient
+      .from('click_events')
+      .insert({
+        session_id: sessionId,
+        element_id: elementId,
+        element_type: elementType,
+        interaction_type: interactionType,
+        event_context: context
+      });
+  } catch (err) {
+    console.warn('Supabase: error in logClickEventToSupabase:', err);
+  }
+}
+
+async function logGridObservationToSupabase() {
+  const hasClient = typeof window !== 'undefined' && window.supabaseClient;
+  if (!hasClient) {
+    console.log('Supabase [Mock Mode]: Grid observation logged at intensity:', state.carbonIntensity);
+    return;
+  }
+  
+  try {
+    const regionId = state.selectedRegionId;
+    const regionName = regionId === 'national' ? 'United Kingdom' : (LOCAL_REGION_DATA[regionId]?.name || 'Selected Region');
+    const intensity = state.carbonIntensity;
+    const intensityIndex = intensity < 75 ? 'very low' : intensity < 120 ? 'moderate' : 'high';
+    const fuelMix = state.generationMix || [];
+    const observedAt = new Date().toISOString();
+    
+    // Upsert actual observation
+    const { error } = await window.supabaseClient
+      .from('grid_observations')
+      .upsert({
+        region_id: regionId,
+        region_name: regionName,
+        intensity_actual: intensity,
+        intensity_forecast: intensity,
+        intensity_index: intensityIndex,
+        fuel_mix: fuelMix,
+        is_forecast: false,
+        observed_at: observedAt
+      }, {
+        onConflict: 'region_id,observed_at,is_forecast'
+      });
+      
+    if (error) {
+      console.warn('Supabase: failed to log actual grid observation:', error);
+    }
+    
+    // Upsert forecast slots
+    if (state.hourlyForecast && state.hourlyForecast.length > 0) {
+      const forecastInserts = state.hourlyForecast.map(slot => {
+        const today = new Date();
+        const [hours, minutes] = slot.time.split(':');
+        today.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+        
+        const slotIntensity = slot.intensity;
+        const slotIndex = slotIntensity < 75 ? 'very low' : slotIntensity < 120 ? 'moderate' : 'high';
+        
+        return {
+          region_id: regionId,
+          region_name: regionName,
+          intensity_actual: slotIntensity,
+          intensity_forecast: slotIntensity,
+          intensity_index: slotIndex,
+          fuel_mix: [],
+          is_forecast: true,
+          observed_at: today.toISOString()
+        };
+      });
+      
+      const { error: forecastErr } = await window.supabaseClient
+        .from('grid_observations')
+        .upsert(forecastInserts, {
+          onConflict: 'region_id,observed_at,is_forecast'
+        });
+        
+      if (forecastErr) {
+        console.warn('Supabase: failed to log grid forecasts:', forecastErr);
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase: error in logGridObservationToSupabase:', err);
+  }
+}
+
+async function markRecommendationAdopted(category) {
+  const hasClient = typeof window !== 'undefined' && window.supabaseClient;
+  if (!hasClient) {
+    console.log('Supabase [Mock Mode]: Recommendation adopted for category:', category);
+    return;
+  }
+  const sessionId = sessionStorage.getItem('ecopulse_session_id');
+  if (!sessionId) return;
+  
+  try {
+    const { data: recs, error: fetchErr } = await window.supabaseClient
+      .from('recommendations')
+      .select('recommendation_id')
+      .eq('session_id', sessionId)
+      .eq('advice_category', category)
+      .order('created_at', { ascending: false })
+      .limit(1);
+      
+    if (fetchErr || !recs || recs.length === 0) return;
+    
+    const recId = recs[0].recommendation_id;
+    const { error: updateErr } = await window.supabaseClient
+      .from('recommendations')
+      .update({ is_adopted: true })
+      .eq('recommendation_id', recId);
+      
+    if (updateErr) {
+      console.warn('Supabase: failed to update recommendation adoption:', updateErr);
+    } else {
+      console.log('Supabase: successfully marked recommendation as adopted:', category);
+    }
+  } catch (err) {
+    console.warn('Supabase: error marking recommendation as adopted:', err);
+  }
+}
