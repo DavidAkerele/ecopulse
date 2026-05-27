@@ -724,9 +724,9 @@ function renderDatacenterUI() {
   // Swap background image based on current grid coefficient
   const staticBg = document.querySelector('.static-bg');
   if (staticBg) {
-    if (state.carbonIntensity < 150) {
+    if (state.carbonIntensity < 75) {
       staticBg.style.backgroundImage = 'url("/eco/bg.png")';
-    } else if (state.carbonIntensity < 250) {
+    } else if (state.carbonIntensity < 150) {
       staticBg.style.backgroundImage = 'url("/eco/bg_moderate.jpg")';
     } else {
       staticBg.style.backgroundImage = 'url("/eco/bg_dirty.jpg")';
