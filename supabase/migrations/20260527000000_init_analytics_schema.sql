@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.model_catalog (
     model_id VARCHAR(50) PRIMARY KEY,
     model_name VARCHAR(100) NOT NULL,
     provider VARCHAR(100) NOT NULL,
-    model_size VARCHAR(20) NOT NULL CHECK (model_size IN ('Small', 'Medium', 'Large', 'Extra Large')),
+    model_size VARCHAR(20) NOT NULL CHECK (model_size IN ('Small', 'Medium', 'Large', 'Extra Large', 'Auto')),
     kwh_per_1k_tokens NUMERIC(10, 6) NOT NULL,
     water_ml_per_1k_tokens NUMERIC(10, 4) NOT NULL,
     ewaste_mg_per_1k_tokens NUMERIC(10, 4) NOT NULL,
