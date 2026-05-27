@@ -5,18 +5,18 @@ import { ECO_BODY } from "@/lib/ecoBody";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Echo Pulse" },
+      { title: "Eco Pulse" },
       {
         name: "description",
         content:
-          "Echo Pulse: A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
+          "Eco Pulse: A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
       },
       {
         name: "keywords",
         content:
           "AI carbon footprint, sustainable computing, green software, carbon intensity API, LLM energy calculator",
       },
-      { property: "og:title", content: "Echo Pulse" },
+      { property: "og:title", content: "Eco Pulse" },
       {
         property: "og:description",
         content:
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       { property: "og:image", content: "/eco/bg.png" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Echo Pulse" },
+      { name: "twitter:title", content: "Eco Pulse" },
       {
         name: "twitter:description",
         content:
@@ -113,7 +113,7 @@ function Index() {
           // @ts-expect-error global from CDN
           window.lucide.createIcons();
         }
-        
+
         // Wait for tiktoken to load first
         await loadTiktoken();
         if (cancelled) return;
@@ -126,10 +126,10 @@ function Index() {
           window.SUPABASE_URL = supabaseUrl;
           // @ts-expect-error set global keys
           window.SUPABASE_ANON_KEY = supabaseAnonKey;
-          
+
           await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js");
           if (cancelled) return;
-          
+
           // @ts-expect-error global from CDN
           if (typeof window !== "undefined" && window.supabase?.createClient) {
             // @ts-expect-error global from CDN
@@ -300,12 +300,12 @@ function Index() {
         <div id="app-preloader" className="preloader-overlay">
           <div className="preloader-card">
             <div className="preloader-icon-wrap">
-              <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
+              <img src="/eco/favicon.png" className="preloader-icon" alt="Eco Pulse Logo" />
               <div className="preloader-ring-outer"></div>
               <div className="preloader-ring-inner"></div>
             </div>
             <div className="preloader-text-wrapper">
-              <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+              <span className="preloader-text">INITIALIZING Eco PULSE</span>
               <div className="preloader-progress">
                 <div className="preloader-progress-bar"></div>
               </div>
@@ -322,12 +322,12 @@ function Index() {
       <div id="app-preloader" className="preloader-overlay">
         <div className="preloader-card">
           <div className="preloader-icon-wrap">
-            <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
+            <img src="/eco/favicon.png" className="preloader-icon" alt="Eco Pulse Logo" />
             <div className="preloader-ring-outer"></div>
             <div className="preloader-ring-inner"></div>
           </div>
           <div className="preloader-text-wrapper">
-            <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+            <span className="preloader-text">INITIALIZING Eco PULSE</span>
             <div className="preloader-progress">
               <div className="preloader-progress-bar"></div>
             </div>

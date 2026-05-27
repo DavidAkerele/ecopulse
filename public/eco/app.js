@@ -7,7 +7,7 @@
 const MODELS = {
   'eco-router': {
     name: 'Green Eco-Router (Dynamic)',
-    provider: 'Echo Pulse',
+    provider: 'Eco Pulse',
     size: 'Auto',
     kwhPer1k: 0.0015,
     waterPer1k: 1.5,
@@ -160,27 +160,27 @@ function analyzePromptComplexity(text) {
     const types = state.attachments.map(a => a.type).join(', ');
     return { level: 'High', reason: `Multimodal attachment(s) detected: ${types}` };
   }
-  
+
   if (!text) return { level: 'Low', reason: 'Empty query' };
-  
+
   const len = text.length;
-  
+
   // Programming keyword indicators
   const codePatterns = [
-    /\bdef\b/, /\bfunction\b/, /\bclass\b/, /\bconst\b/, /\bimport\b/, 
+    /\bdef\b/, /\bfunction\b/, /\bclass\b/, /\bconst\b/, /\bimport\b/,
     /\blet\b/, /\bvar\b/, /\breturn\b/, /\bconsole\.log\b/, /\bprintf?\b/,
     /\bselect\s+.*\s+from\b/i, /<html>/i, /css/i, /[\{\}\[\]\(\)]/
   ];
-  
+
   // Mathematical keyword indicators
   const mathPatterns = [
     /\bsqrt\b/i, /\bintegral\b/i, /\bmatrix\b/i, /\bequation\b/i,
     /\bformula\b/i, /\bderive\b/i, /[\+\-\*\/=]{2,}/
   ];
-  
+
   let hasCode = codePatterns.some(pat => pat.test(text));
   let hasMath = mathPatterns.some(pat => pat.test(text));
-  
+
   if (len > 1000 || hasCode || hasMath) {
     let reason = len > 1000 ? 'Length > 1000 chars' : (hasCode ? 'Code tokens detected' : 'Math tokens detected');
     return { level: 'High', reason };
@@ -195,11 +195,11 @@ function analyzePromptComplexity(text) {
 function runEcoRouting(promptText, gridIntensity) {
   const complexity = analyzePromptComplexity(promptText);
   let decisionTrace = [];
-  
+
   decisionTrace.push(`Analyzing prompt complexity...`);
   decisionTrace.push(`Complexity: ${complexity.level} (${complexity.reason})`);
   decisionTrace.push(`Grid Carbon Intensity: ${gridIntensity} gCO₂/kWh`);
-  
+
   // 1. Map complexity to standard base target models
   let baseModelKey;
   if (complexity.level === 'High') {
@@ -218,11 +218,11 @@ function runEcoRouting(promptText, gridIntensity) {
     baseModelKey = 'llama3-8b-flash';
     decisionTrace.push(`Low complexity routes to Small tier (Llama 8B / Flash).`);
   }
-  
+
   // 2. Throttling/downgrading logic if grid carbon emissions are high (> 120)
   let routedModelKey = baseModelKey;
   let throttled = false;
-  
+
   if (gridIntensity > 120) {
     throttled = true;
     decisionTrace.push(`Grid carbon emissions exceed 120 gCO₂/kWh. Activating emissions throttle...`);
@@ -241,9 +241,9 @@ function runEcoRouting(promptText, gridIntensity) {
   } else {
     decisionTrace.push(`Grid emissions stable. Standard routing active.`);
   }
-  
+
   decisionTrace.push(`Routed Model: ${MODELS[routedModelKey].name}`);
-  
+
   return {
     complexity: complexity.level,
     baseModelKey,
@@ -263,7 +263,7 @@ function estimateTokens(text, modelKey = null) {
   try {
     if (window.getEncoding) {
       let targetModelKey = modelKey || state.selectedModel;
-      
+
       // Resolve eco-router
       if (targetModelKey === 'eco-router') {
         const promptInput = document.getElementById('prompt-input');
@@ -271,7 +271,7 @@ function estimateTokens(text, modelKey = null) {
         const route = runEcoRouting(promptVal, state.carbonIntensity);
         targetModelKey = route.routedModelKey;
       }
-      
+
       // Map model keys to standard OpenAI models/encodings
       let mappedModel = 'gpt-4o'; // default o200k_base
       if (targetModelKey === 'gpt-4-opus') {
@@ -283,7 +283,7 @@ function estimateTokens(text, modelKey = null) {
       } else if (targetModelKey === 'llama3-8b-flash') {
         mappedModel = 'gpt-4o'; // fallback
       }
-      
+
       if (!cachedEncoders[mappedModel]) {
         if (window.encodingForModel) {
           cachedEncoders[mappedModel] = window.encodingForModel(mappedModel);
@@ -291,7 +291,7 @@ function estimateTokens(text, modelKey = null) {
           cachedEncoders[mappedModel] = window.getEncoding('cl100k_base');
         }
       }
-      
+
       const encoder = cachedEncoders[mappedModel];
       if (encoder) {
         return encoder.encode(text).length;
@@ -312,22 +312,22 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
     const route = runEcoRouting(inputTxt, intensity);
     activeKey = route.routedModelKey;
   }
-  
+
   const model = MODELS[activeKey];
   const modelIntensity = model.datacenter.gridIntensity === 'dynamic' ? intensity : model.datacenter.gridIntensity;
-  
+
   const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
   const inTokens = estimateTokens(inputTxt, activeKey) + attachmentTokens;
   const outTokens = estimateTokens(outputTxt, activeKey);
   const totalTokens = inTokens + outTokens;
-  
+
   const energyKwh = (totalTokens / 1000) * model.kwhPer1k;
   const energyWh = energyKwh * 1000;
   const co2Grams = energyKwh * modelIntensity;
-  
+
   const waterMl = (totalTokens / 1000) * model.waterPer1k;
   const ewasteMg = (totalTokens / 1000) * model.ewastePer1k;
-  
+
   // Alternative comparisons for recommendations (filtering out the router itself)
   const alternatives = Object.keys(MODELS)
     .filter(key => key !== 'eco-router')
@@ -344,7 +344,7 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
         savingsPercent: savingsPercent
       };
     });
-  
+
   // Energy analogies (referenced to average UK values)
   // LED Light bulb: 10W bulb. 1 hour = 0.01 kWh. In terms of grams of CO2 = 0.01 * intensity.
   // We can also use absolute averages:
@@ -357,7 +357,7 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
   const waterSips = waterMl / 15;
   const treeAbsorptionSeconds = co2Grams / 0.000697; // 22000g / (365*24*3600)
   const coffeeCupsBoiled = energyKwh / 0.025; // boiling a cup of water takes ~0.025 kWh
-  
+
   return {
     inTokens,
     outTokens,
@@ -386,13 +386,13 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
 function getSimulatedGridData() {
   const now = new Date();
   const hour = now.getHours();
-  
+
   // Simulate carbon intensity based on time of day (UK average is ~130-180 gCO2/kWh)
   // Peak grid demand is typically 17:00 to 21:00 (coal/gas peak, high intensity)
   // Midday has solar output (lower intensity)
   // Night has wind/nuclear dominance (lowest intensity)
   let intensity = 135; // base
-  
+
   if (hour >= 17 && hour <= 21) {
     intensity = 180 + Math.sin((hour - 17) * Math.PI / 4) * 45; // peak 180 - 225
   } else if (hour >= 11 && hour <= 15) {
@@ -402,9 +402,9 @@ function getSimulatedGridData() {
   } else {
     intensity = 120 + (Math.random() - 0.5) * 20; // normal transition
   }
-  
+
   intensity = Math.round(intensity);
-  
+
   // Calculate simulated fuel mix based on intensity
   // High intensity -> high gas/imports
   // Low intensity -> high wind/nuclear/solar
@@ -416,11 +416,11 @@ function getSimulatedGridData() {
   let biomassPerc = 8;
   let hydroPerc = 2;
   let coalPerc = 0;
-  
+
   if (hour >= 8 && hour <= 17) {
     solarPerc = Math.max(5, Math.round(25 * Math.sin((hour - 7) * Math.PI / 10)));
   }
-  
+
   if (intensity > 120) {
     gasPerc = Math.round(40 + (intensity - 120) * 0.4);
     windPerc = Math.max(10, Math.round(30 - (intensity - 120) * 0.3));
@@ -429,11 +429,11 @@ function getSimulatedGridData() {
     windPerc = Math.round(45 + (120 - intensity) * 0.5);
     gasPerc = Math.max(5, Math.round(25 - (120 - intensity) * 0.3));
   }
-  
+
   // Normalize percentages to sum to 100
   const rawSum = gasPerc + windPerc + nuclearPerc + solarPerc + importsPerc + biomassPerc + hydroPerc + coalPerc;
   const factor = 100 / rawSum;
-  
+
   const mix = [
     { fuel: 'gas', perc: Math.round(gasPerc * factor * 10) / 10 },
     { fuel: 'wind', perc: Math.round(windPerc * factor * 10) / 10 },
@@ -444,7 +444,7 @@ function getSimulatedGridData() {
     { fuel: 'hydro', perc: Math.round(hydroPerc * factor * 10) / 10 },
     { fuel: 'coal', perc: Math.round(coalPerc * factor * 10) / 10 }
   ].sort((a, b) => b.perc - a.perc);
-  
+
   // Forecast for next 12 hours
   const forecast = [];
   for (let i = 0; i < 12; i++) {
@@ -454,7 +454,7 @@ function getSimulatedGridData() {
     else if (fHour >= 11 && fHour <= 15) fIntensity = 75;
     else if (fHour >= 1 && fHour <= 5) fIntensity = 60;
     else fIntensity = 110;
-    
+
     // Add minor variation
     fIntensity = Math.round(fIntensity + Math.sin(i) * 10);
     forecast.push({
@@ -462,7 +462,7 @@ function getSimulatedGridData() {
       intensity: fIntensity
     });
   }
-  
+
   return {
     intensity,
     mix,
@@ -478,7 +478,7 @@ async function updateGridMetrics() {
 
   const liveIndicator = document.getElementById('live-indicator');
   const liveStatusText = document.getElementById('live-status-text');
-  
+
   try {
     // 1. Fetch live carbon intensity
     const resIntensity = await fetch(API_INTENSITY, { method: 'GET', mode: 'cors' });
@@ -490,7 +490,7 @@ async function updateGridMetrics() {
     if (!resGen.ok) throw new Error('Failed to fetch generation mix');
     const dataGen = await resGen.json();
     const liveMix = dataGen.data.generationmix;
-    
+
     // 3. Fetch hourly forecast for the day
     // Get current date string YYYY-MM-DD
     const todayStr = new Date().toISOString().split('T')[0];
@@ -508,18 +508,18 @@ async function updateGridMetrics() {
         };
       });
     }
-    
+
     // Update global state
     state.carbonIntensity = actualIntensity;
     state.generationMix = liveMix.sort((a, b) => b.perc - a.perc);
     state.hourlyForecast = liveForecast.length > 0 ? liveForecast : getSimulatedGridData().forecast;
     state.isLive = true;
-    
+
     // Update UI Indicators
     liveIndicator.classList.add('live-active');
     liveIndicator.classList.remove('live-simulated');
     liveStatusText.innerText = 'UK GRID LIVE';
-    
+
   } catch (error) {
     console.warn('Grid API fetch failed, resorting to simulated grid data:', error);
     // Use diurnal simulator fallback
@@ -528,7 +528,7 @@ async function updateGridMetrics() {
     state.generationMix = simulated.mix;
     state.hourlyForecast = simulated.forecast;
     state.isLive = false;
-    
+
     // Update UI Indicators
     liveIndicator.classList.remove('live-active');
     liveIndicator.classList.add('live-simulated');
@@ -565,7 +565,7 @@ function renderGridUI() {
   const intensityValue = document.getElementById('intensity-value');
   const intensityLabel = document.getElementById('intensity-label');
   const gaugeFill = document.getElementById('gauge-fill');
-  
+
   // Set card title dynamically based on selected region
   const dialCardHeader = document.querySelector('.dial-card .card-header h2');
   if (dialCardHeader) {
@@ -573,12 +573,12 @@ function renderGridUI() {
     const regionName = LOCAL_REGION_DATA[regionId]?.name || 'UK';
     dialCardHeader.textContent = regionId === 'national' ? 'UK Grid Coefficient' : `${regionName} Grid Coefficient`;
   }
-  
+
   // Set intensity texts
   intensityValue.innerText = state.carbonIntensity;
   intensityLabel.innerText = getIntensityLabel(state.carbonIntensity);
   intensityLabel.style.color = getIntensityColor(state.carbonIntensity);
-  
+
   // Update gauge circle strokeDashoffset (max circumference is 283 for r=45)
   // Let's scale intensity from 0 to 300 gCO2/kWh
   const maxIntensity = 300;
@@ -586,11 +586,11 @@ function renderGridUI() {
   const strokeOffset = 283 - (283 * percentage) / 100;
   gaugeFill.style.strokeDashoffset = strokeOffset;
   gaugeFill.style.stroke = getIntensityColor(state.carbonIntensity);
-  
+
   // Update fuel mix grid/cards
   const fuelListContainer = document.getElementById('fuel-list');
   fuelListContainer.innerHTML = '';
-  
+
   // Icon mapper for fuels
   const fuelIcons = {
     wind: 'wind',
@@ -615,14 +615,14 @@ function renderGridUI() {
     hydro: 'Hydroelectric',
     other: 'Other Sources'
   };
-  
+
   state.generationMix.forEach(item => {
     const fuelKey = item.fuel.toLowerCase();
     const percentage = item.perc;
     const label = fuelLabels[fuelKey] || fuelKey;
     const isRenewable = ['wind', 'solar', 'hydro', 'nuclear', 'biomass'].includes(fuelKey);
     const badgeClass = isRenewable ? 'badge-clean' : 'badge-dirty';
-    
+
     // Calculate color based on fuel type
     let fuelColor = '#71717a'; // neutral
     if (fuelKey === 'wind') fuelColor = '#06b6d4'; // cyan
@@ -653,14 +653,14 @@ function renderGridUI() {
     `;
     fuelListContainer.insertAdjacentHTML('beforeend', itemHtml);
   });
-  
+
   // Render current ambient background color based on intensity
   const baseColor = getIntensityColor(state.carbonIntensity);
   document.documentElement.style.setProperty('--glow-color', baseColor + '1a'); // 10% opacity glow
-  
+
   // Update Data Centre Grid list UI
   renderDatacenterUI();
-  
+
   // Update recommendations and future forecasts
   renderForecastChart();
 }
@@ -669,14 +669,14 @@ function renderGridUI() {
 function renderForecastChart() {
   const forecastContainer = document.getElementById('forecast-chart-container');
   forecastContainer.innerHTML = '';
-  
+
   // We will build a beautiful HTML-based line chart/bar list representing future grid hours
   state.hourlyForecast.forEach(item => {
     const intensity = item.intensity;
     const time = item.time;
     const color = getIntensityColor(intensity);
     const barHeight = Math.min(90, (intensity / 300) * 100); // percentage height
-    
+
     const barHtml = `
       <div class="forecast-bar-wrapper">
         <div class="forecast-tooltip">${intensity} g</div>
@@ -691,37 +691,37 @@ function renderForecastChart() {
 function renderDatacenterUI() {
   const datacenterList = document.getElementById('datacenter-list');
   if (!datacenterList) return;
-  
+
   datacenterList.innerHTML = '';
-  
+
   const promptInput = document.getElementById('prompt-input');
   const text = promptInput ? promptInput.value : '';
-  
+
   let activeModelKey = state.selectedModel;
   if (state.selectedModel === 'eco-router') {
     const route = runEcoRouting(text, state.carbonIntensity);
     activeModelKey = route.routedModelKey;
   }
-  
+
   const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
   const inTokens = estimateTokens(text, activeModelKey) + attachmentTokens;
   // Estimate response size: if there is text, estimate as 1.2x input size or at least 50 tokens
   const outTokens = text ? Math.max(50, Math.ceil(inTokens * 1.2)) : 0;
   const totalTokens = inTokens + outTokens;
-  
+
   let calcTokens = totalTokens;
   let isBaseline = false;
   if (calcTokens === 0) {
     calcTokens = 1000; // Baseline of 1,000 tokens when workspace is empty
     isBaseline = true;
   }
-  
+
   // Active model grid intensity coefficient & emissions
   const activeModel = MODELS[activeModelKey];
   const activeIntensity = activeModel.datacenter.gridIntensity === 'dynamic' ? state.carbonIntensity : activeModel.datacenter.gridIntensity;
   const activeEnergyKwh = (calcTokens / 1000) * activeModel.kwhPer1k;
   const activeCo2 = activeEnergyKwh * activeIntensity;
-  
+
   // Swap background image based on active model grid intensity
   // Swap background image based on current grid coefficient
   const staticBg = document.querySelector('.static-bg');
@@ -734,27 +734,27 @@ function renderDatacenterUI() {
       staticBg.style.backgroundImage = 'url("/eco/bg_dirty.jpg")';
     }
   }
-  
+
   Object.keys(MODELS).forEach(key => {
     if (key === 'eco-router') return;
-    
+
     const model = MODELS[key];
     const isActive = (key === activeModelKey);
     const dc = model.datacenter;
-    
+
     let intensityVal = dc.gridIntensity;
     if (dc.gridIntensity === 'dynamic') {
       intensityVal = state.carbonIntensity;
     }
-    
+
     // Estimate footprint for this model
     const energyKwh = (calcTokens / 1000) * model.kwhPer1k;
     const co2 = energyKwh * intensityVal;
-    
+
     // Determine status badge class and label
     let labelClass = 'intensity-lbl-moderate';
     let labelText = 'Moderate';
-    
+
     if (intensityVal < 100) {
       labelClass = 'intensity-lbl-clean';
       labelText = 'Optimal';
@@ -762,7 +762,7 @@ function renderDatacenterUI() {
       labelClass = 'intensity-lbl-dirty';
       labelText = 'Carbon-Heavy';
     }
-    
+
     // Create comparison badge
     let compHtml = '';
     if (isActive) {
@@ -776,7 +776,7 @@ function renderDatacenterUI() {
         compHtml = `<span class="datacenter-comp-badge badge-lower">${pct.toFixed(0)}% savings</span>`;
       }
     }
-    
+
     const rowHtml = `
       <div class="datacenter-item ${isActive ? 'datacenter-item-active' : ''}">
         <div class="datacenter-item-top">
@@ -802,7 +802,7 @@ function renderDatacenterUI() {
     `;
     datacenterList.insertAdjacentHTML('beforeend', rowHtml);
   });
-  
+
   if (typeof lucide !== 'undefined' && lucide.createIcons) {
     lucide.createIcons();
   }
@@ -814,34 +814,34 @@ function updateRealtimeCounts() {
   const characterCount = document.getElementById('char-count');
   const tokenEstimate = document.getElementById('token-estimate');
   const energyEstimate = document.getElementById('energy-estimate');
-  
+
   if (!promptInput || !characterCount || !tokenEstimate || !energyEstimate) return;
-  
+
   const text = promptInput.value;
   const count = text.length;
-  
+
   let activeModelKey = state.selectedModel;
   if (state.selectedModel === 'eco-router') {
     const route = runEcoRouting(text, state.carbonIntensity);
     activeModelKey = route.routedModelKey;
   }
-  
+
   const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
   const textTokens = estimateTokens(text, activeModelKey);
   const tokens = textTokens + attachmentTokens;
-  
+
   if (state.attachments && state.attachments.length > 0) {
     characterCount.innerHTML = `${count.toLocaleString()} <span style="font-size:0.65rem; color:var(--green); margin-left:4px;">(+${state.attachments.length} attachment${state.attachments.length > 1 ? 's' : ''})</span>`;
   } else {
     characterCount.innerText = count.toLocaleString();
   }
-  
+
   tokenEstimate.innerText = tokens.toLocaleString();
-  
+
   const routerDivider = document.getElementById('router-divider');
   const routerIndicator = document.getElementById('router-indicator');
   const routerStatusText = document.getElementById('router-status-text');
-  
+
   if (state.selectedModel === 'eco-router') {
     // Show router indicators in header
     if (routerDivider) routerDivider.style.display = 'inline-block';
@@ -850,20 +850,20 @@ function updateRealtimeCounts() {
       const m = MODELS[activeModelKey];
       let sizeShort = m.size === 'Extra Large' ? 'XL' : m.size === 'Large' ? 'L' : m.size === 'Medium' ? 'M' : 'S';
       let nameShort = activeModelKey === 'gpt-4-opus' ? 'OPUS' : activeModelKey === 'gpt-4o-sonnet' ? 'SONNET' : activeModelKey === 'gpt-35-llama70' ? 'LLAMA 70B' : 'FLASH';
-      
+
       if (routerStatusText) {
         routerStatusText.innerText = `ROUTED: ${nameShort} (${sizeShort})`;
       }
-      
+
       routerIndicator.style.borderColor = m.color + '44';
       routerIndicator.style.background = m.color + '14';
-      
+
       const pulseRing = routerIndicator.querySelector('.pulse-ring');
       if (pulseRing) {
         pulseRing.style.backgroundColor = m.color;
       }
     }
-    
+
     // Update specifications box dynamically in real-time as users type
     updateModelDetails();
   } else {
@@ -871,12 +871,12 @@ function updateRealtimeCounts() {
     if (routerDivider) routerDivider.style.display = 'none';
     if (routerIndicator) routerIndicator.style.display = 'none';
   }
-  
+
   // Calculate instant expected energy usage just for prompt input
   const model = MODELS[activeModelKey];
   const energyWh = (tokens / 1000) * model.kwhPer1k * 1000;
   energyEstimate.innerText = formatEnergy(energyWh);
-  
+
   // Dynamically update Data Centre Grid card with real-time prompt calculations
   renderDatacenterUI();
 }
@@ -905,14 +905,14 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
   const metricsResultCard = document.getElementById('metrics-results');
   const auditBtn = document.getElementById('audit-btn');
   const promptInput = document.getElementById('prompt-input');
-  
+
   let displayName = MODELS[activeModelKey].name;
   if (state.selectedModel === 'eco-router') {
     displayName = `Eco-Router -> ${MODELS[activeModelKey].name}`;
   }
-  
+
   const metrics = calculateCarbonMetrics(promptText, simulatedOutput, activeModelKey, state.carbonIntensity);
-  
+
   // Cleanly append the resource consumption details directly under the document analysis logs in the terminal
   terminalBody.innerHTML += `
     <div class="term-divider"></div>
@@ -923,12 +923,12 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
     <div class="term-line font-mono">> Cooling Water: <strong style="color: #22d3ee;">${metrics.waterMl.toFixed(1)} ml</strong></div>
     <div class="term-line font-mono">> Hardware wear (E-Waste): <strong style="color: #f87171;">${metrics.ewasteMg.toFixed(3)} mg</strong></div>
   `;
-  
+
   // Compute session savings compared to running on 'gpt-4-opus' (the worst-case model)
   const maxCo2 = calculateCarbonMetrics(promptText, simulatedOutput, 'gpt-4-opus', state.carbonIntensity).co2Grams;
   const savings = Math.max(0, maxCo2 - metrics.co2Grams);
   state.sessionSavingsCo2 += savings;
-  
+
   const savingsBadge = document.getElementById('savings-badge');
   const savingsVal = document.getElementById('session-savings-val');
   if (savingsBadge && savingsVal) {
@@ -937,35 +937,35 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
     savingsBadge.classList.add('pulse-green-flash');
     setTimeout(() => savingsBadge.classList.remove('pulse-green-flash'), 800);
   }
-  
+
   updateMetricsUI(metrics, activeModelKey);
-  
+
   // Record audit in session history logs
   addAuditToHistory(promptText, activeModelKey, metrics.co2Grams, metrics.energyWh);
-  
+
   // Log audit to Supabase database if connected
   logAuditEventToSupabase(promptText, simulatedOutput, activeModelKey, metrics);
-  
+
   const termContainer = document.getElementById('terminal-container');
   if (termContainer) {
     termContainer.scrollTop = termContainer.scrollHeight;
     termContainer.classList.remove('active-scanning');
   }
-  
+
   state.isAuditing = false;
   auditBtn.disabled = false;
   auditBtn.innerHTML = '<i data-lucide="zap"></i> Run Carbon Audit';
   lucide.createIcons();
-  
+
   metricsResultCard.classList.add('visible');
-  
+
   // Clear prompt input and attachments tray
   if (promptInput) promptInput.value = '';
   state.attachments = [];
   renderAttachmentsTray();
   updateRealtimeCounts();
-  
-  // Echo Pulse Challenge checks
+
+  // Eco Pulse Challenge checks
   if (activeModelKey === 'llama3-8b-flash') {
     updateChallengeProgress('flashDiet', 1);
   }
@@ -982,7 +982,7 @@ function printAuditResults(promptText, simulatedOutput, activeModelKey) {
 function addAuditToHistory(promptText, activeModelKey, co2Grams, energyWh) {
   const shortPrompt = promptText.length > 35 ? promptText.substring(0, 32) + '...' : promptText;
   const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  
+
   state.auditHistory.unshift({
     time,
     prompt: shortPrompt,
@@ -991,12 +991,12 @@ function addAuditToHistory(promptText, activeModelKey, co2Grams, energyWh) {
     co2: co2Grams,
     energy: energyWh
   });
-  
+
   // Limit to most recent 5 records
   if (state.auditHistory.length > 5) {
     state.auditHistory.pop();
   }
-  
+
   renderAuditHistory();
 }
 
@@ -1004,12 +1004,12 @@ function addAuditToHistory(promptText, activeModelKey, co2Grams, energyWh) {
 function renderAuditHistory() {
   const historyList = document.getElementById('history-list');
   if (!historyList) return;
-  
+
   if (state.auditHistory.length === 0) {
     historyList.innerHTML = `<div class="no-history-state text-muted">No queries audited this session.</div>`;
     return;
   }
-  
+
   historyList.innerHTML = '';
   state.auditHistory.forEach(item => {
     const itemHtml = `
@@ -1035,7 +1035,7 @@ function renderAuditHistory() {
 // Run simulated audit
 function runCarbonAudit() {
   if (state.isAuditing) return;
-  
+
   const promptInput = document.getElementById('prompt-input');
   const promptText = promptInput.value.trim();
   const hasAttachments = state.attachments && state.attachments.length > 0;
@@ -1043,30 +1043,30 @@ function runCarbonAudit() {
     alert('Please enter a prompt or attach a file/recording to analyze.');
     return;
   }
-  
+
   state.isAuditing = true;
   const auditBtn = document.getElementById('audit-btn');
   const terminalBody = document.getElementById('terminal-body');
-  
+
   const termContainer = document.getElementById('terminal-container');
   if (termContainer) {
     termContainer.classList.add('active-scanning');
   }
-  
+
   auditBtn.disabled = true;
   auditBtn.innerHTML = '<span class="spinner"></span> Auditing Footprint...';
-  
+
   const simulatedOutput = SIMULATED_RESPONSES[Math.floor(Math.random() * SIMULATED_RESPONSES.length)];
-  
+
   if (state.selectedModel === 'eco-router') {
     const route = runEcoRouting(promptText, state.carbonIntensity);
     const activeModelKey = route.routedModelKey;
-    
+
     terminalBody.innerHTML = '<div class="term-line loading-text">> Establishing connection with Green Eco-Router...</div>';
-    
+
     setTimeout(() => {
       terminalBody.innerHTML += '<div class="term-line">> [Router] Initiating carbon-aware request routing...</div>';
-      
+
       setTimeout(() => {
         if (state.attachments && state.attachments.length > 0) {
           terminalBody.innerHTML += `<div class="term-line text-cyan">> [Multimodal] Parsing ${state.attachments.length} attachment(s)...</div>`;
@@ -1075,14 +1075,14 @@ function runCarbonAudit() {
             terminalBody.innerHTML += `<div class="term-line text-muted">> [Multimodal] - ${att.type.toUpperCase()}: "${att.name}" (${sizeStr}) -> +${att.tokens} tokens</div>`;
           });
         }
-        
+
         setTimeout(() => {
           const comp = analyzePromptComplexity(promptText);
           terminalBody.innerHTML += `<div class="term-line">> [Router] Analyzing prompt complexity: <strong>${comp.level} Complexity</strong> (${comp.reason})</div>`;
-          
+
           setTimeout(() => {
             terminalBody.innerHTML += `<div class="term-line">> [Router] UK Grid Carbon Intensity: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO₂/kWh</span></div>`;
-            
+
             setTimeout(() => {
               if (route.throttled) {
                 terminalBody.innerHTML += `<div class="term-line text-warning">> [Router] Carbon Throttle Active: Grid emissions > 120 gCO₂/kWh. Downgrading target model 1 tier.</div>`;
@@ -1091,16 +1091,16 @@ function runCarbonAudit() {
               } else {
                 terminalBody.innerHTML += `<div class="term-line">> [Router] No throttling required. Standard routing path selected.</div>`;
               }
-              
+
               setTimeout(() => {
                 terminalBody.innerHTML += `<div class="term-line text-success">> [Router] Decision: Routed to <strong>${MODELS[activeModelKey].name}</strong></div>`;
-                
+
                 setTimeout(() => {
                   terminalBody.innerHTML += `<div class="term-line">> Establishing session with ${MODELS[activeModelKey].name}...</div>`;
-                  
+
                   setTimeout(() => {
                     terminalBody.innerHTML += `<div class="term-line">> Streaming inference response...</div>`;
-                    
+
                     setTimeout(() => {
                       printAuditResults(promptText, simulatedOutput, activeModelKey);
                     }, 1000);
@@ -1112,10 +1112,10 @@ function runCarbonAudit() {
         }, 600);
       }, 500);
     }, 500);
-    
+
   } else {
     terminalBody.innerHTML = '<div class="term-line loading-text">> Establishing session with ' + MODELS[state.selectedModel].name + '...</div>';
-    
+
     setTimeout(() => {
       if (state.attachments && state.attachments.length > 0) {
         terminalBody.innerHTML += `<div class="term-line text-cyan">> [Multimodal] Parsing ${state.attachments.length} attachment(s)...</div>`;
@@ -1124,17 +1124,17 @@ function runCarbonAudit() {
           terminalBody.innerHTML += `<div class="term-line text-muted">> [Multimodal] - ${att.type.toUpperCase()}: "${att.name}" (${sizeStr}) -> +${att.tokens} tokens</div>`;
         });
       }
-      
+
       setTimeout(() => {
         terminalBody.innerHTML += '<div class="term-line">> Calculating input token footprint...</div>';
-        
+
         setTimeout(() => {
           terminalBody.innerHTML += '<div class="term-line">> Querying live UK grid carbon coefficients...</div>';
           terminalBody.innerHTML += `<div class="term-line">> Grid Status: <span style="color: ${getIntensityColor(state.carbonIntensity)}">${state.carbonIntensity} gCO2/kWh</span></div>`;
-          
+
           setTimeout(() => {
             terminalBody.innerHTML += '<div class="term-line">> Streaming simulated response output...</div>';
-            
+
             setTimeout(() => {
               printAuditResults(promptText, simulatedOutput, state.selectedModel);
             }, 1000);
@@ -1152,16 +1152,16 @@ function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
   document.getElementById('res-carbon').innerText = formatCarbon(metrics.co2Grams);
   document.getElementById('res-water').innerText = formatWater(metrics.waterMl);
   document.getElementById('res-ewaste').innerText = formatEwaste(metrics.ewasteMg);
-  
+
   // Analogies updates
   document.getElementById('analogy-led').innerText = metrics.analogies.ledHours.toFixed(1) + ' hrs';
   document.getElementById('analogy-phone').innerText = metrics.analogies.phoneCharges.toFixed(1) + ' charges';
   document.getElementById('analogy-water').innerText = metrics.analogies.waterSips.toFixed(1) + ' sips';
   document.getElementById('analogy-tree').innerText = metrics.analogies.treeAbsorptionSeconds.toFixed(0) + ' s';
-  
+
   // Slogan / Story text
   const narrative = document.getElementById('analogy-narrative');
-  
+
   let scaleText = '';
   if (metrics.co2Grams > 0.5) {
     scaleText = `This heavy AI query emits **${metrics.co2Grams.toFixed(2)}g of CO₂** and consumes **${metrics.waterMl.toFixed(1)}ml** of fresh server-cooling water. Under the current grid intensity of **${state.carbonIntensity} gCO₂/kWh**, running this request is equivalent to boiling a kettle for ${metrics.analogies.coffeeCupsBoiled.toFixed(1)} cups of coffee and generates **${metrics.ewasteMg.toFixed(3)}mg** of GPU hardware depletion.`;
@@ -1171,16 +1171,16 @@ function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
     scaleText = `A highly efficient query! Emits just **${metrics.co2Grams.toFixed(4)}g of CO₂** and consumes **${metrics.waterMl.toFixed(3)}ml** of water. This tiny footprint is equal to charging **${metrics.analogies.phoneCharges.toFixed(2)}%** of a standard smartphone.`;
   }
   narrative.innerHTML = scaleText;
-  
+
   // Recommendations List
   const recommendationsContainer = document.getElementById('recommendations-list');
   recommendationsContainer.innerHTML = '';
-  
+
   // Suggestion 1: Model Switching (if not already using the lightweight option)
   if (activeModelKey !== 'llama3-8b-flash') {
     const flashModel = metrics.alternatives.find(a => a.key === 'llama3-8b-flash');
     const savings = flashModel.savingsPercent.toFixed(1);
-    
+
     recommendationsContainer.innerHTML += `
       <div class="recommendation-card border-green">
         <div class="rec-icon text-green"><i data-lucide="shield-check"></i></div>
@@ -1192,7 +1192,7 @@ function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
       </div>
     `;
   }
-  
+
   // Suggestion 2: Time shifting
   // Find the lowest forecasted intensity slot in our 12h forecast
   let lowestSlot = state.hourlyForecast[0];
@@ -1201,10 +1201,10 @@ function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
       lowestSlot = slot;
     }
   });
-  
+
   const currentIntensity = state.carbonIntensity;
   const lowestIntensity = lowestSlot.intensity;
-  
+
   if (currentIntensity - lowestIntensity > 15) {
     const timeSavings = ((currentIntensity - lowestIntensity) / currentIntensity * 100).toFixed(0);
     recommendationsContainer.innerHTML += `
@@ -1228,18 +1228,18 @@ function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
       </div>
     `;
   }
-  
+
   lucide.createIcons();
 }
 
 // Switch current selected model from recommendations
-window.switchModel = function(modelKey) {
+window.switchModel = function (modelKey) {
   const modelSelect = document.getElementById('model-select');
   modelSelect.value = modelKey;
   state.selectedModel = modelKey;
   updateModelDetails();
   updateRealtimeCounts();
-  
+
   // Flash visual feedback
   modelSelect.classList.add('flash-highlight');
   setTimeout(() => modelSelect.classList.remove('flash-highlight'), 600);
@@ -1249,7 +1249,7 @@ window.switchModel = function(modelKey) {
 };
 
 // Simulate scheduling the execution
-window.simulateSchedule = function(time, savingsPercent) {
+window.simulateSchedule = function (time, savingsPercent) {
   const modal = document.createElement('div');
   modal.className = 'toast-notification';
   modal.innerHTML = `
@@ -1263,7 +1263,7 @@ window.simulateSchedule = function(time, savingsPercent) {
   `;
   document.body.appendChild(modal);
   lucide.createIcons();
-  
+
   setTimeout(() => {
     modal.classList.add('fade-out');
     setTimeout(() => modal.remove(), 500);
@@ -1280,16 +1280,16 @@ window.simulateSchedule = function(time, savingsPercent) {
 function updateModelDetails() {
   const select = document.getElementById('model-select');
   state.selectedModel = select.value;
-  
+
   const specModelName = document.getElementById('spec-model-name');
   const specEnergy = document.getElementById('spec-energy');
   const specSlogan = document.getElementById('spec-slogan');
   const modelBadge = document.getElementById('model-badge');
-  
+
   let activeKey = state.selectedModel;
   let prefix = '';
   let slogan = '';
-  
+
   if (state.selectedModel === 'eco-router') {
     const promptInput = document.getElementById('prompt-input');
     const text = promptInput ? promptInput.value : '';
@@ -1300,14 +1300,14 @@ function updateModelDetails() {
   } else {
     slogan = MODELS[activeKey].slogan;
   }
-  
+
   const m = MODELS[activeKey];
   specModelName.innerText = prefix + m.name;
   specEnergy.innerText = (m.kwhPer1k * 1000).toFixed(1) + ' Wh / 1k tokens';
   specSlogan.innerText = slogan;
   modelBadge.style.backgroundColor = m.color;
   modelBadge.innerText = state.selectedModel === 'eco-router' ? `Auto (${m.size})` : m.size;
-  
+
   // Update Data Centre Highlights
   renderDatacenterUI();
 }
@@ -1369,27 +1369,27 @@ function initQuiz() {
   quizCorrectCount = 0;
   quizScoreThisSession = 0;
   quizAnswered = false;
-  
+
   document.getElementById('quiz-start-view').style.display = 'none';
   document.getElementById('quiz-active-view').style.display = 'block';
   document.getElementById('quiz-end-view').style.display = 'none';
-  
+
   loadQuizQuestion();
 }
 
 function loadQuizQuestion() {
   quizAnswered = false;
   quizSecondsLeft = 30;
-  
+
   const q = QUIZ_QUESTIONS[state.activeQuizQuestion];
-  
+
   // Set question text
   document.getElementById('quiz-question-text').innerText = q.question;
-  
+
   // Render options buttons
   const container = document.getElementById('quiz-options-container');
   container.innerHTML = '';
-  
+
   q.options.forEach((opt, idx) => {
     const btn = document.createElement('button');
     btn.className = 'quiz-option-btn';
@@ -1400,10 +1400,10 @@ function loadQuizQuestion() {
     btn.addEventListener('click', () => selectQuizAnswer(idx));
     container.appendChild(btn);
   });
-  
+
   // Update index and streak displays
   document.getElementById('quiz-q-index').innerText = `Question ${state.activeQuizQuestion + 1}/${QUIZ_QUESTIONS.length}`;
-  
+
   const streakBadge = document.getElementById('quiz-streak-badge');
   if (state.streak > 0) {
     streakBadge.style.display = 'inline-block';
@@ -1411,17 +1411,17 @@ function loadQuizQuestion() {
   } else {
     streakBadge.style.display = 'none';
   }
-  
+
   // Reset feedback box and next button
   document.getElementById('quiz-feedback-box').style.display = 'none';
   document.getElementById('quiz-next-btn').style.display = 'none';
-  
+
   // Reset progress bar
   const fill = document.getElementById('quiz-timer-fill');
   fill.style.transition = 'none';
   fill.style.width = '100%';
   document.getElementById('quiz-timer-val').innerText = '30s';
-  
+
   // Start timer
   if (quizTimer) clearInterval(quizTimer);
   quizTimer = setInterval(tickQuizTimer, 1000);
@@ -1429,7 +1429,7 @@ function loadQuizQuestion() {
 
 function tickQuizTimer() {
   if (quizAnswered) return;
-  
+
   quizSecondsLeft--;
   if (quizSecondsLeft <= 0) {
     quizSecondsLeft = 0;
@@ -1450,11 +1450,11 @@ function selectQuizAnswer(selectedIndex) {
   if (quizAnswered) return;
   quizAnswered = true;
   clearInterval(quizTimer);
-  
+
   const q = QUIZ_QUESTIONS[state.activeQuizQuestion];
   const correctIdx = q.correctAnswer;
   const isCorrect = (selectedIndex === correctIdx);
-  
+
   // Disable all options
   const buttons = document.querySelectorAll('.quiz-option-btn');
   buttons.forEach((btn, idx) => {
@@ -1467,25 +1467,25 @@ function selectQuizAnswer(selectedIndex) {
       btn.classList.add('option-dimmed');
     }
   });
-  
+
   // Calculate points
   let pointsEarned = 0;
   if (isCorrect) {
     quizCorrectCount++;
     state.streak++;
-    
+
     // Streak multiplier logic
     const streakBonus = Math.floor(state.streak / 2) * 10;
     pointsEarned = 50 + streakBonus + Math.round(quizSecondsLeft * 1.5);
     state.score += pointsEarned;
     quizScoreThisSession += pointsEarned;
-    
+
     // Highlight correct indicators
     const feedbackTitle = document.getElementById('quiz-feedback-title');
     feedbackTitle.innerText = "Correct!";
     const feedbackInd = feedbackTitle.parentElement;
     feedbackInd.className = "feedback-indicator correct-color";
-    
+
     // Set check mark icon
     const feedbackIcon = document.getElementById('quiz-feedback-icon');
     feedbackIcon.setAttribute('data-lucide', 'check-circle');
@@ -1496,31 +1496,31 @@ function selectQuizAnswer(selectedIndex) {
     feedbackTitle.innerText = selectedIndex === -1 ? "Time's Up!" : "Not Quite Right";
     const feedbackInd = feedbackTitle.parentElement;
     feedbackInd.className = "feedback-indicator incorrect-color";
-    
+
     // Set cross icon
     const feedbackIcon = document.getElementById('quiz-feedback-icon');
     feedbackIcon.setAttribute('data-lucide', 'x-circle');
   }
-  
+
   // Update header score displays
   updateEcoPulseScoreUI();
-  
+
   // Fill explanation and fact
   document.getElementById('quiz-feedback-desc').innerText = q.explanation;
   document.getElementById('quiz-feedback-fact').innerText = q.carbonFact;
   document.getElementById('quiz-feedback-box').style.display = 'block';
   document.getElementById('quiz-next-btn').style.display = 'block';
-  
+
   lucide.createIcons();
 }
 
 function updateEcoPulseScoreUI() {
   document.getElementById('header-score-val').innerText = state.score;
-  
+
   const separator = document.getElementById('header-streak-separator');
   const streakBadge = document.getElementById('header-streak-badge');
   const streakVal = document.getElementById('header-streak-val');
-  
+
   if (state.streak > 0) {
     if (separator) separator.style.display = 'inline';
     if (streakBadge) {
@@ -1531,7 +1531,7 @@ function updateEcoPulseScoreUI() {
     if (separator) separator.style.display = 'none';
     if (streakBadge) streakBadge.style.display = 'none';
   }
-  
+
   // Animate score badge flash
   const scoreBadge = document.getElementById('EcoPulse-score-badge');
   if (scoreBadge) {
@@ -1546,7 +1546,7 @@ function nextQuizQuestion() {
     // End Quiz
     document.getElementById('quiz-active-view').style.display = 'none';
     document.getElementById('quiz-end-view').style.display = 'block';
-    
+
     // Update results screen
     document.getElementById('quiz-final-score').innerText = `+${quizScoreThisSession} pts`;
     const accuracy = Math.round((quizCorrectCount / QUIZ_QUESTIONS.length) * 100);
@@ -1595,7 +1595,7 @@ function renderChallengesUI() {
     flashStatus.innerText = `${state.challenges.flashDiet}/3`;
     flashFill.style.width = `${(state.challenges.flashDiet / 3) * 100}%`;
   }
-  
+
   // Peak Shifter
   const peakStatus = document.getElementById('challenge-peak-shifter-status');
   const peakFill = document.getElementById('challenge-peak-shifter-fill');
@@ -1603,7 +1603,7 @@ function renderChallengesUI() {
     peakStatus.innerText = `${state.challenges.peakShifter}/1`;
     peakFill.style.width = `${(state.challenges.peakShifter / 1) * 100}%`;
   }
-  
+
   // Eco Router
   const ecoStatus = document.getElementById('challenge-eco-router-status');
   const ecoFill = document.getElementById('challenge-eco-router-fill');
@@ -1616,7 +1616,7 @@ function renderChallengesUI() {
 function awardChallengePoints(message, points) {
   state.score += points;
   updateEcoPulseScoreUI();
-  
+
   // Toast notification for challenge completion
   const modal = document.createElement('div');
   modal.className = 'toast-notification';
@@ -1625,13 +1625,13 @@ function awardChallengePoints(message, points) {
       <i data-lucide="trophy" class="text-amber"></i>
       <div class="toast-text">
         <div class="toast-title">${message}</div>
-        <div class="toast-desc">You've earned <strong>+${points} Echo Pulse Points</strong>.</div>
+        <div class="toast-desc">You've earned <strong>+${points} Eco Pulse Points</strong>.</div>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
   lucide.createIcons();
-  
+
   setTimeout(() => {
     modal.classList.add('fade-out');
     setTimeout(() => modal.remove(), 500);
@@ -1656,89 +1656,89 @@ const LOCAL_REGION_DATA = {
     ],
     insight: 'The UK national grid average combines clean generation from Scottish wind, English solar, and nuclear baseloads with transitionary natural gas and international imports.'
   },
-  '1':  { 
-    name: 'North Scotland', 
-    typicalIntensity: 15, 
+  '1': {
+    name: 'North Scotland',
+    typicalIntensity: 15,
     typicalMix: [{ fuel: 'wind', perc: 80.8 }, { fuel: 'solar', perc: 19.2 }],
-    insight: 'North Scotland leads the UK in wind power, with some of the world\'s highest capacity factors for onshore wind. Hydro power supplements supply during low-wind periods.' 
+    insight: 'North Scotland leads the UK in wind power, with some of the world\'s highest capacity factors for onshore wind. Hydro power supplements supply during low-wind periods.'
   },
-  '2':  { 
-    name: 'South Scotland (Edinburgh/Glasgow)', 
-    typicalIntensity: 30, 
+  '2': {
+    name: 'South Scotland (Edinburgh/Glasgow)',
+    typicalIntensity: 30,
     typicalMix: [{ fuel: 'wind', perc: 32.4 }, { fuel: 'nuclear', perc: 37.8 }, { fuel: 'solar', perc: 22.0 }, { fuel: 'biomass', perc: 2.4 }, { fuel: 'imports', perc: 5.4 }],
-    insight: 'South Scotland benefits from strong offshore and onshore wind, with Edinburgh\'s carbon intensity consistently below the UK average.' 
+    insight: 'South Scotland benefits from strong offshore and onshore wind, with Edinburgh\'s carbon intensity consistently below the UK average.'
   },
-  '3':  { 
-    name: 'North West England (Manchester)', 
-    typicalIntensity: 80, 
+  '3': {
+    name: 'North West England (Manchester)',
+    typicalIntensity: 80,
     typicalMix: [{ fuel: 'nuclear', perc: 41.3 }, { fuel: 'solar', perc: 17.2 }, { fuel: 'gas', perc: 14.9 }, { fuel: 'imports', perc: 12.4 }, { fuel: 'biomass', perc: 7.1 }, { fuel: 'wind', perc: 7.2 }],
-    insight: 'The Manchester region is connected to significant offshore wind capacity in the Irish Sea, particularly via Burbo Bank and Walney Extension. Grid intensity fluctuates with tidal wind windows.' 
+    insight: 'The Manchester region is connected to significant offshore wind capacity in the Irish Sea, particularly via Burbo Bank and Walney Extension. Grid intensity fluctuates with tidal wind windows.'
   },
-  '4':  { 
-    name: 'North East England (Newcastle)', 
-    typicalIntensity: 40, 
+  '4': {
+    name: 'North East England (Newcastle)',
+    typicalIntensity: 40,
     typicalMix: [{ fuel: 'imports', perc: 40.8 }, { fuel: 'nuclear', perc: 23.9 }, { fuel: 'biomass', perc: 18.4 }, { fuel: 'solar', perc: 14.7 }, { fuel: 'wind', perc: 2.2 }],
-    insight: 'The North East has a strong industrial legacy but is transitioning fast — Teesside is home to one of the UK\'s emerging green hydrogen hubs and offshore wind clusters.' 
+    insight: 'The North East has a strong industrial legacy but is transitioning fast — Teesside is home to one of the UK\'s emerging green hydrogen hubs and offshore wind clusters.'
   },
-  '5':  { 
-    name: 'Yorkshire', 
-    typicalIntensity: 130, 
+  '5': {
+    name: 'Yorkshire',
+    typicalIntensity: 130,
     typicalMix: [{ fuel: 'biomass', perc: 33.0 }, { fuel: 'gas', perc: 26.0 }, { fuel: 'wind', perc: 20.3 }, { fuel: 'solar', perc: 11.9 }, { fuel: 'imports', perc: 5.5 }, { fuel: 'nuclear', perc: 3.2 }],
-    insight: 'Yorkshire\'s grid is driven by a mix of Humber offshore wind, gas peakers, and remaining biomass capacity. Running AI queries at midday benefits from better renewable penetration.' 
+    insight: 'Yorkshire\'s grid is driven by a mix of Humber offshore wind, gas peakers, and remaining biomass capacity. Running AI queries at midday benefits from better renewable penetration.'
   },
-  '6':  { 
-    name: 'Merseyside & Cheshire (Liverpool)', 
-    typicalIntensity: 120, 
+  '6': {
+    name: 'Merseyside & Cheshire (Liverpool)',
+    typicalIntensity: 120,
     typicalMix: [{ fuel: 'gas', perc: 33.8 }, { fuel: 'solar', perc: 29.9 }, { fuel: 'nuclear', perc: 18.9 }, { fuel: 'wind', perc: 10.8 }, { fuel: 'imports', perc: 4.3 }, { fuel: 'biomass', perc: 2.3 }],
-    insight: 'Merseyside benefits from strong Irish Sea wind connectivity. The region is also home to several pump-storage facilities which help balance renewable intermittency.' 
+    insight: 'Merseyside benefits from strong Irish Sea wind connectivity. The region is also home to several pump-storage facilities which help balance renewable intermittency.'
   },
-  '7':  { 
-    name: 'South Wales (Cardiff)', 
-    typicalIntensity: 240, 
+  '7': {
+    name: 'South Wales (Cardiff)',
+    typicalIntensity: 240,
     typicalMix: [{ fuel: 'gas', perc: 68.8 }, { fuel: 'solar', perc: 30.3 }, { fuel: 'wind', perc: 0.9 }],
-    insight: 'South Wales has significant tidal stream potential and a legacy nuclear contribution. The region\'s carbon intensity is typically moderate, improving steadily with offshore wind.' 
+    insight: 'South Wales has significant tidal stream potential and a legacy nuclear contribution. The region\'s carbon intensity is typically moderate, improving steadily with offshore wind.'
   },
-  '8':  { 
-    name: 'West Midlands (Birmingham)', 
-    typicalIntensity: 135, 
+  '8': {
+    name: 'West Midlands (Birmingham)',
+    typicalIntensity: 135,
     typicalMix: [{ fuel: 'solar', perc: 43.1 }, { fuel: 'gas', perc: 28.7 }, { fuel: 'nuclear', perc: 14.2 }, { fuel: 'wind', perc: 5.8 }, { fuel: 'imports', perc: 4.3 }, { fuel: 'biomass', perc: 4.0 }],
-    insight: 'The West Midlands is land-locked with fewer direct renewables. It relies on grid imports from windier regions. Running lighter AI models during peak hours is highly recommended.' 
+    insight: 'The West Midlands is land-locked with fewer direct renewables. It relies on grid imports from windier regions. Running lighter AI models during peak hours is highly recommended.'
   },
-  '9':  { 
-    name: 'East Midlands (Nottingham)', 
-    typicalIntensity: 150, 
+  '9': {
+    name: 'East Midlands (Nottingham)',
+    typicalIntensity: 150,
     typicalMix: [{ fuel: 'gas', perc: 36.0 }, { fuel: 'solar', perc: 30.0 }, { fuel: 'biomass', perc: 15.7 }, { fuel: 'wind', perc: 14.3 }, { fuel: 'imports', perc: 2.6 }, { fuel: 'nuclear', perc: 1.5 }],
-    insight: 'The East Midlands is historically gas-heavy but transitioning with East Midlands Net Zero cluster investments. Solar energy peaks in summer afternoons.' 
+    insight: 'The East Midlands is historically gas-heavy but transitioning with East Midlands Net Zero cluster investments. Solar energy peaks in summer afternoons.'
   },
-  '10': { 
-    name: 'East England (Norwich)', 
-    typicalIntensity: 120, 
+  '10': {
+    name: 'East England (Norwich)',
+    typicalIntensity: 120,
     typicalMix: [{ fuel: 'solar', perc: 48.5 }, { fuel: 'imports', perc: 24.8 }, { fuel: 'gas', perc: 13.2 }, { fuel: 'wind', perc: 7.7 }, { fuel: 'biomass', perc: 4.3 }, { fuel: 'nuclear', perc: 1.5 }],
-    insight: 'East England is a solar powerhouse — high irradiance and flat terrain enable strong PV output in summer. Offshore wind from the North Sea also contributes significantly.' 
+    insight: 'East England is a solar powerhouse — high irradiance and flat terrain enable strong PV output in summer. Offshore wind from the North Sea also contributes significantly.'
   },
-  '11': { 
-    name: 'South West England (Bristol/Exeter)', 
-    typicalIntensity: 75, 
+  '11': {
+    name: 'South West England (Bristol/Exeter)',
+    typicalIntensity: 75,
     typicalMix: [{ fuel: 'solar', perc: 74.7 }, { fuel: 'gas', perc: 19.8 }, { fuel: 'imports', perc: 2.5 }, { fuel: 'biomass', perc: 1.0 }, { fuel: 'wind', perc: 1.5 }],
-    insight: 'The South West has excellent wind and tidal resources. The region hosts the Hinkley Point C nuclear project, which will substantially reduce grid carbon intensity from 2030.' 
+    insight: 'The South West has excellent wind and tidal resources. The region hosts the Hinkley Point C nuclear project, which will substantially reduce grid carbon intensity from 2030.'
   },
-  '12': { 
-    name: 'South England (Southampton)', 
-    typicalIntensity: 125, 
+  '12': {
+    name: 'South England (Southampton)',
+    typicalIntensity: 125,
     typicalMix: [{ fuel: 'solar', perc: 49.2 }, { fuel: 'gas', perc: 30.9 }, { fuel: 'imports', perc: 9.7 }, { fuel: 'biomass', perc: 3.9 }, { fuel: 'nuclear', perc: 2.3 }, { fuel: 'wind', perc: 3.9 }],
-    insight: 'South England benefits from high solar irradiance. It is also connected to French nuclear power via the IFA interconnector, which can provide very low-carbon imports.' 
+    insight: 'South England benefits from high solar irradiance. It is also connected to French nuclear power via the IFA interconnector, which can provide very low-carbon imports.'
   },
-  '13': { 
-    name: 'London', 
-    typicalIntensity: 130, 
+  '13': {
+    name: 'London',
+    typicalIntensity: 130,
     typicalMix: [{ fuel: 'imports', perc: 47.4 }, { fuel: 'solar', perc: 28.2 }, { fuel: 'gas', perc: 19.3 }, { fuel: 'wind', perc: 2.8 }, { fuel: 'biomass', perc: 1.4 }, { fuel: 'nuclear', perc: 0.7 }, { fuel: 'hydro', perc: 0.2 }],
-    insight: 'London\'s grid benefits from interconnectors to France and Belgium (low-carbon nuclear), but high urban density and data centre load maintain moderate intensity. Early morning is typically the cleanest window.' 
+    insight: 'London\'s grid benefits from interconnectors to France and Belgium (low-carbon nuclear), but high urban density and data centre load maintain moderate intensity. Early morning is typically the cleanest window.'
   },
-  '14': { 
-    name: 'South East England (Brighton)', 
-    typicalIntensity: 120, 
+  '14': {
+    name: 'South East England (Brighton)',
+    typicalIntensity: 120,
     typicalMix: [{ fuel: 'imports', perc: 61.9 }, { fuel: 'gas', perc: 19.5 }, { fuel: 'solar', perc: 17.4 }, { fuel: 'wind', perc: 0.9 }, { fuel: 'hydro', perc: 0.3 }],
-    insight: 'The South East has strong solar capacity and benefits from Channel interconnectors. Grid intensity often dips below 100 gCO₂/kWh on sunny, windy days.' 
+    insight: 'The South East has strong solar capacity and benefits from Channel interconnectors. Grid intensity often dips below 100 gCO₂/kWh on sunny, windy days.'
   },
 };
 
@@ -1780,12 +1780,12 @@ let localRegionCache = null;
 // Fetch live regional data from Carbon Intensity API
 async function fetchLocalRegionData(regionId) {
   state.selectedRegionId = regionId;
-  
+
   const regionCard = document.getElementById('local-region-card');
   if (regionCard) {
     regionCard.classList.add('fetching');
   }
-  
+
   const fetchBtn = document.getElementById('local-fetch-btn');
   if (fetchBtn) {
     fetchBtn.disabled = true;
@@ -1868,10 +1868,10 @@ function renderLocalImpactUI() {
   if (intensityLabel) {
     intensityLabel.textContent = getIntensityLabel(intensity) + ' — ' +
       (index === 'very low' ? 'Optimal time to run AI queries.' :
-       index === 'low'      ? 'Good time for AI queries.' :
-       index === 'moderate' ? 'Standard grid conditions.' :
-       index === 'high'     ? 'Consider lighter models.' :
-       'High emissions — use eco models or defer.');
+        index === 'low' ? 'Good time for AI queries.' :
+          index === 'moderate' ? 'Standard grid conditions.' :
+            index === 'high' ? 'Consider lighter models.' :
+              'High emissions — use eco models or defer.');
   }
   if (regionCard) {
     regionCard.className = 'local-region-card' +
@@ -1936,10 +1936,10 @@ function renderLocalImpactUI() {
 // Budget persistent state (localStorage-backed)
 const BUDGET_KEY_LIMIT = 'EcoPulse_budget_limit';
 const BUDGET_KEY_TODAY = 'EcoPulse_budget_today_date';
-const BUDGET_KEY_USED  = 'EcoPulse_budget_used';
-const BUDGET_KEY_LOG   = 'EcoPulse_budget_log';
+const BUDGET_KEY_USED = 'EcoPulse_budget_used';
+const BUDGET_KEY_LOG = 'EcoPulse_budget_log';
 const BUDGET_KEY_STREAK = 'EcoPulse_budget_streak';
-const BUDGET_KEY_TOTAL  = 'EcoPulse_budget_total_alltime';
+const BUDGET_KEY_TOTAL = 'EcoPulse_budget_total_alltime';
 
 let budgetState = {
   limit: parseFloat(localStorage.getItem(BUDGET_KEY_LIMIT) || '1'),
@@ -1956,7 +1956,7 @@ function budgetRestoreDaily() {
 
   if (savedDate === today) {
     budgetState.used = parseFloat(localStorage.getItem(BUDGET_KEY_USED) || '0');
-    try { budgetState.log = JSON.parse(localStorage.getItem(BUDGET_KEY_LOG) || '[]'); } catch(e) { budgetState.log = []; }
+    try { budgetState.log = JSON.parse(localStorage.getItem(BUDGET_KEY_LOG) || '[]'); } catch (e) { budgetState.log = []; }
   } else {
     // New day — check if yesterday's session was under budget and increment streak
     const yesterdayUsed = parseFloat(localStorage.getItem(BUDGET_KEY_USED) || '0');
@@ -2010,11 +2010,11 @@ function budgetRecordAudit(promptText, co2Grams, modelColor) {
 
 // Render the full Budget UI
 function renderBudgetUI() {
-  const used    = budgetState.used;
-  const limit   = budgetState.limit;
-  const pct     = Math.min(100, (used / limit) * 100);
-  const isWarn  = pct >= 80 && pct < 100;
-  const isOver  = pct >= 100;
+  const used = budgetState.used;
+  const limit = budgetState.limit;
+  const pct = Math.min(100, (used / limit) * 100);
+  const isWarn = pct >= 80 && pct < 100;
+  const isOver = pct >= 100;
 
   // --- Ring Gauge ---
   const CIRCUMFERENCE = 364.4; // 2π × r=58
@@ -2058,10 +2058,10 @@ function renderBudgetUI() {
   if (auditsEl) auditsEl.textContent = budgetState.log.length;
 
   // --- Alert box ---
-  const alertBox   = document.getElementById('budget-alert-box');
-  const alertIcon  = document.getElementById('budget-alert-icon');
+  const alertBox = document.getElementById('budget-alert-box');
+  const alertIcon = document.getElementById('budget-alert-icon');
   const alertTitle = document.getElementById('budget-alert-title');
-  const alertDesc  = document.getElementById('budget-alert-desc');
+  const alertDesc = document.getElementById('budget-alert-desc');
   if (alertBox && alertIcon && alertTitle && alertDesc) {
     alertBox.className = 'budget-alert-box';
     if (isOver) {
@@ -2285,11 +2285,11 @@ function initMultimodalImports() {
 // Attach standard files
 function handleFileAttach(filesList, type) {
   if (!filesList || filesList.length === 0) return;
-  
+
   for (let i = 0; i < filesList.length; i++) {
     const file = filesList[i];
     const id = 'attachment_' + Math.random().toString(36).substr(2, 9);
-    
+
     let tokens = 0;
     if (type === 'image') {
       tokens = 800; // Flat multimodal image penalty
@@ -2322,9 +2322,9 @@ function handleFileAttach(filesList, type) {
       };
       reader.readAsText(file);
     }
-    
+
     const icon = type === 'document' ? 'file-text' : type === 'image' ? 'image' : 'video';
-    
+
     state.attachments.push({
       id,
       name: file.name,
@@ -2336,7 +2336,7 @@ function handleFileAttach(filesList, type) {
       raw: file
     });
   }
-  
+
   renderAttachmentsTray();
   updateRealtimeCounts();
 }
@@ -2377,7 +2377,7 @@ function renderAttachmentsTray() {
 }
 
 // Global scope window helper to remove attachment
-window.removeAttachment = function(id) {
+window.removeAttachment = function (id) {
   state.attachments = state.attachments.filter(a => a.id !== id);
   renderAttachmentsTray();
   updateRealtimeCounts();
@@ -2406,7 +2406,7 @@ async function toggleVoiceRecording() {
       const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
       const durationSeconds = (Date.now() - recordStartTime) / 1000;
       const id = 'attachment_' + Math.random().toString(36).substr(2, 9);
-      
+
       state.attachments.push({
         id,
         name: `Voice Recording #${state.attachments.filter(a => a.type === 'audio').length + 1}.wav`,
@@ -2417,14 +2417,14 @@ async function toggleVoiceRecording() {
         meta: `${formatBytes(audioBlob.size)} • ${durationSeconds.toFixed(1)}s`,
         raw: audioBlob
       });
-      
+
       renderAttachmentsTray();
       updateRealtimeCounts();
     };
 
     mediaRecorder.start();
     recordStartTime = Date.now();
-    
+
     startAudioVisualizer(audioStream);
 
     const timerEl = document.getElementById('voice-timer');
@@ -2481,35 +2481,35 @@ function startAudioVisualizer(stream) {
   const canvas = document.getElementById('voice-visualizer');
   if (!canvas) return;
   const canvasCtx = canvas.getContext('2d');
-  
+
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioContext.createMediaStreamSource(stream);
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = 256;
   source.connect(analyser);
-  
+
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
-  
+
   function draw() {
     animationFrameId = requestAnimationFrame(draw);
     analyser.getByteFrequencyData(dataArray);
-    
+
     canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     const barWidth = (canvas.width / bufferLength) * 1.5;
     let barHeight;
     let x = 0;
-    
+
     for (let i = 0; i < bufferLength; i++) {
       barHeight = dataArray[i] / 2;
-      canvasCtx.fillStyle = `rgba(250, 204, 21, ${0.3 + barHeight/150})`;
+      canvasCtx.fillStyle = `rgba(250, 204, 21, ${0.3 + barHeight / 150})`;
       canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
       x += barWidth;
     }
   }
-  
+
   draw();
 }
 
@@ -2519,7 +2519,7 @@ function startAudioVisualizer(stream) {
 document.addEventListener('DOMContentLoaded', () => {
   // Bootstrap Multimodal Imports Integration UI
   initMultimodalImports();
-  
+
   // Restore today's budget from localStorage
   budgetRestoreDaily();
 
@@ -2528,7 +2528,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modelSelect = document.getElementById('model-select');
   const auditBtn = document.getElementById('audit-btn');
   const refreshGridBtn = document.getElementById('refresh-grid-btn');
-  
+
   promptInput.addEventListener('input', scheduleRealtimeCountsUpdate);
   modelSelect.addEventListener('change', () => {
     updateModelDetails();
@@ -2536,7 +2536,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   auditBtn.addEventListener('click', runCarbonAudit);
   refreshGridBtn.addEventListener('click', updateGridMetrics);
-  
+
   // Model Comparison Drawer Toggle
   const compareToggleBtn = document.getElementById('compare-toggle-btn');
   const compareMatrixDrawer = document.getElementById('compare-matrix-drawer');
@@ -2546,13 +2546,13 @@ document.addEventListener('DOMContentLoaded', () => {
       compareMatrixDrawer.classList.toggle('active');
     });
   }
-  
+
   // Tab Switcher for Right Sidebar
   const tabTelemetry = document.getElementById('tab-telemetry');
   const tabRecommendations = document.getElementById('tab-recommendations');
   const tabQuiz = document.getElementById('tab-quiz');
   const tabBudget = document.getElementById('tab-budget');
-  
+
   const metricsResults = document.getElementById('metrics-results');
   const fuelCard = document.querySelector('.fuel-card');
   const forecastCard = document.querySelector('.forecast-card');
@@ -2560,13 +2560,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const recommendationsPanel = document.getElementById('recommendations-panel');
   const quizPanel = document.getElementById('quiz-panel');
   const budgetPanel = document.getElementById('budget-panel');
-  
+
   function switchTab(activeTab) {
     // Remove active class from all tabs
     [tabTelemetry, tabRecommendations, tabQuiz, tabBudget].forEach(tab => {
       if (tab) tab.classList.remove('active');
     });
-    
+
     // Hide all panels
     metricsResults.style.display = 'none';
     if (fuelCard) fuelCard.style.display = 'none';
@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (recommendationsPanel) recommendationsPanel.style.display = 'none';
     if (quizPanel) quizPanel.style.display = 'none';
     if (budgetPanel) budgetPanel.style.display = 'none';
-    
+
     if (activeTab === 'telemetry') {
       if (tabTelemetry) tabTelemetry.classList.add('active');
       metricsResults.style.display = 'flex';
@@ -2595,7 +2595,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderBudgetUI(); // Refresh on tab open
     }
   }
-  
+
   if (tabTelemetry) {
     tabTelemetry.addEventListener('click', () => switchTab('telemetry'));
   }
@@ -2626,18 +2626,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const regionId = localCitySelect.value;
       fetchLocalRegionData(regionId);
     });
-    
+
     localCitySelect.addEventListener('change', () => {
       const regionId = localCitySelect.value;
       fetchLocalRegionData(regionId);
     });
-    
+
     // Auto-fetch default region (National Average) on first load
     localCitySelect.value = 'national';
     state.selectedRegionId = 'national';
     fetchLocalRegionData('national');
   }
-  
+
   // Render score UI and challenges UI on load
   updateEcoPulseScoreUI();
   renderChallengesUI();
@@ -2681,26 +2681,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetSavingsBtn = document.getElementById('reset-savings-btn');
   const intensityOffsetInput = document.getElementById('settings-intensity-offset');
   const simToggleSelect = document.getElementById('settings-sim-toggle');
-  
+
   // Custom Settings State Variables
   let intensityMultiplier = 1.0;
   let forceSimulation = false;
-  
+
   if (closeSettingsBtn && settingsModal) {
     closeSettingsBtn.addEventListener('click', () => {
       settingsModal.classList.remove('active');
     });
   }
-  
+
   if (resetSavingsBtn) {
     resetSavingsBtn.addEventListener('click', () => {
       state.sessionSavingsCo2 = 0;
       state.auditHistory = [];
       renderAuditHistory();
-      
+
       const savingsVal = document.getElementById('session-savings-val');
       if (savingsVal) savingsVal.innerText = '0.000g';
-      
+
       // Reset EcoPulse states
       state.score = 0;
       state.streak = 0;
@@ -2711,17 +2711,17 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       updateEcoPulseScoreUI();
       renderChallengesUI();
-      
+
       // Visual feedback
       resetSavingsBtn.classList.add('flash-highlight');
       setTimeout(() => resetSavingsBtn.classList.remove('flash-highlight'), 600);
-      
+
       // Alert/notification
       simulateSchedule('Reset Complete', 0);
       settingsModal.classList.remove('active');
     });
   }
-  
+
   if (intensityOffsetInput) {
     intensityOffsetInput.addEventListener('change', (e) => {
       const val = parseFloat(e.target.value);
@@ -2731,7 +2731,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  
+
   if (simToggleSelect) {
     simToggleSelect.addEventListener('change', (e) => {
       forceSimulation = (e.target.value === 'sim');
@@ -2741,7 +2741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Intercept grid update logic in app.js using our custom settings values and regional active selection
   const originalUpdateGrid = updateGridMetrics;
-  updateGridMetrics = async function() {
+  updateGridMetrics = async function () {
     if (isGridUpdateInFlight) return;
     isGridUpdateInFlight = true;
 
@@ -2756,7 +2756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const simulated = getSimulatedGridData();
         let regionalIntensity = simulated.intensity;
         let regionalMix = simulated.mix;
-        
+
         if (!isNational) {
           const regMeta = LOCAL_REGION_DATA[regionId];
           if (regMeta) {
@@ -2765,7 +2765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regionalMix = regMeta.typicalMix || simulated.mix;
           }
         }
-        
+
         state.carbonIntensity = Math.round(regionalIntensity * intensityMultiplier);
         state.generationMix = regionalMix;
         state.hourlyForecast = simulated.forecast.map(s => ({
@@ -2773,7 +2773,7 @@ document.addEventListener('DOMContentLoaded', () => {
           intensity: Math.round(s.intensity * (state.carbonIntensity / (simulated.intensity || 120)))
         }));
         state.isLive = false;
-        
+
         if (liveIndicator && liveStatusText) {
           liveIndicator.classList.remove('live-active');
           liveIndicator.classList.add('live-simulated');
@@ -2785,7 +2785,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let actualIntensity = 120;
         let liveMix = [];
         let liveForecast = [];
-        
+
         if (isNational) {
           const resIntensity = await fetch(API_INTENSITY, { method: 'GET', mode: 'cors' });
           if (!resIntensity.ok) throw new Error('Failed to fetch intensity');
@@ -2805,13 +2805,13 @@ document.addEventListener('DOMContentLoaded', () => {
           actualIntensity = regData.intensity.forecast || regData.intensity.actual || 120;
           liveMix = regData.generationmix || [];
         }
-        
+
         // Fetch national forecast to scale for regional
         const todayStr = new Date().toISOString().split('T')[0];
         const resForecast = await fetch(`${API_FORECAST}/${todayStr}`, { method: 'GET', mode: 'cors' });
         if (resForecast.ok) {
           const dataForecast = await resForecast.json();
-          
+
           let nationalIntensity = actualIntensity;
           if (!isNational) {
             try {
@@ -2820,10 +2820,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataNat = await resNat.json();
                 nationalIntensity = dataNat.data[0].intensity.actual || dataNat.data[0].intensity.forecast || 120;
               }
-            } catch(e) {}
+            } catch (e) { }
           }
           const ratio = isNational ? 1.0 : (actualIntensity / (nationalIntensity || 120));
-          
+
           liveForecast = dataForecast.data.slice(0, 12).map(slot => {
             const dateObj = new Date(slot.from);
             const timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -2833,7 +2833,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
           });
         }
-        
+
         state.carbonIntensity = Math.round(actualIntensity * intensityMultiplier);
         state.generationMix = liveMix.sort((a, b) => b.perc - a.perc);
         state.hourlyForecast = liveForecast.length > 0 ? liveForecast : getSimulatedGridData().forecast.map(s => ({
@@ -2841,7 +2841,7 @@ document.addEventListener('DOMContentLoaded', () => {
           intensity: Math.round(s.intensity * intensityMultiplier)
         }));
         state.isLive = true;
-        
+
         if (liveIndicator && liveStatusText) {
           liveIndicator.classList.add('live-active');
           liveIndicator.classList.remove('live-simulated');
@@ -2854,7 +2854,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const simulated = getSimulatedGridData();
       let regionalIntensity = simulated.intensity;
       let regionalMix = simulated.mix;
-      
+
       if (!isNational) {
         const regMeta = LOCAL_REGION_DATA[regionId];
         if (regMeta) {
@@ -2863,7 +2863,7 @@ document.addEventListener('DOMContentLoaded', () => {
           regionalMix = regMeta.typicalMix || simulated.mix;
         }
       }
-      
+
       state.carbonIntensity = Math.round(regionalIntensity * intensityMultiplier);
       state.generationMix = regionalMix;
       state.hourlyForecast = simulated.forecast.map(s => ({
@@ -2871,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', () => {
         intensity: Math.round(s.intensity * (state.carbonIntensity / (simulated.intensity || 120)))
       }));
       state.isLive = false;
-      
+
       if (liveIndicator && liveStatusText) {
         liveIndicator.classList.remove('live-active');
         liveIndicator.classList.add('live-simulated');
@@ -2888,12 +2888,12 @@ document.addEventListener('DOMContentLoaded', () => {
   navItems.forEach((btn, index) => {
     // Skip logo item click
     if (btn.classList.contains('sidebar-logo')) return;
-    
+
     btn.addEventListener('click', (e) => {
       // Set active indicator
       navItems.forEach(n => n.classList.remove('active'));
       btn.classList.add('active');
-      
+
       // Perform contextual view action based on index click:
       // Index 0: Playground Sandbox (terminal icon)
       // Index 1: Model Registry (cpu icon)
@@ -2902,7 +2902,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Index 4: Carbon Forecast (trending-up icon)
       // Index 5: Diagnostics Settings (settings icon)
       // Index 6: About Info (info icon)
-      
+
       if (index === 0) {
         // Switch to Telemetry tab and flash prompt area
         if (tabTelemetry) tabTelemetry.click();
@@ -2967,7 +2967,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       elementSelector: '.sidebar-logo',
       title: '🌿 Welcome, Eco-Hero!',
-      description: 'Welcome to Echo Pulse! Today, you start your training quest to minimize the ecological cost of AI computing. You will learn to audit prompts, save energy, and earn ranks!',
+      description: 'Welcome to Eco Pulse! Today, you start your training quest to minimize the ecological cost of AI computing. You will learn to audit prompts, save energy, and earn ranks!',
       position: 'center'
     },
     {
@@ -2983,9 +2983,9 @@ document.addEventListener('DOMContentLoaded', () => {
       position: 'bottom'
     },
     {
-      elementSelector: '#EchoPulse-score-badge',
+      elementSelector: '#EcoPulse-score-badge',
       title: '🏆 Earn Points & Streaks',
-      description: 'Every time you save carbon, your Echo Pulse score grows! Track your total saved grams, earn point achievements, and maintain daily streaks to level up.',
+      description: 'Every time you save carbon, your Eco Pulse score grows! Track your total saved grams, earn point achievements, and maintain daily streaks to level up.',
       position: 'bottom'
     },
     {
@@ -3046,7 +3046,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       elementSelector: '.sidebar-logo',
       title: '🎉 Quest Completed!',
-      description: 'Fantastic work! You have finished your training quest. We have awarded you **+50 Echo Pulse Points** to jumpstart your rank. Go ahead and run your first audit!',
+      description: 'Fantastic work! You have finished your training quest. We have awarded you **+50 Eco Pulse Points** to jumpstart your rank. Go ahead and run your first audit!',
       position: 'center',
       actionBefore: () => { switchTab('telemetry'); }
     }
@@ -3058,7 +3058,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function startOnboardingTour() {
     currentTourStep = 0;
-    
+
     // Create Overlay if missing
     tourOverlay = document.getElementById('tour-overlay');
     if (!tourOverlay) {
@@ -3067,7 +3067,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tourOverlay.className = 'tour-overlay';
       document.body.appendChild(tourOverlay);
     }
-    
+
     // Create Popover if missing
     tourPopover = document.getElementById('tour-popover');
     if (!tourPopover) {
@@ -3076,30 +3076,30 @@ document.addEventListener('DOMContentLoaded', () => {
       tourPopover.className = 'tour-popover';
       document.body.appendChild(tourPopover);
     }
-    
+
     tourOverlay.classList.add('active');
     tourPopover.classList.add('active');
-    
+
     renderTourStep();
   }
 
   function renderTourStep() {
     const step = tourSteps[currentTourStep];
-    
+
     // Run pre-step setup (e.g. click tab or change UI state)
     if (step.actionBefore) {
       step.actionBefore();
     }
-    
+
     const targetEl = document.querySelector(step.elementSelector);
-    
+
     // Remove previous highlights
     document.querySelectorAll('.tour-focus').forEach(el => el.classList.remove('tour-focus'));
-    
+
     if (targetEl) {
       targetEl.classList.add('tour-focus');
     }
-    
+
     // Build popover contents
     tourPopover.innerHTML = `
       <div class="tour-popover-header">
@@ -3115,7 +3115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `;
-    
+
     // Bind buttons
     document.getElementById('tour-skip-btn').addEventListener('click', endTour);
     document.getElementById('tour-next-btn').addEventListener('click', () => {
@@ -3126,7 +3126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTourStep();
       }
     });
-    
+
     const prevBtn = document.getElementById('tour-prev-btn');
     if (prevBtn) {
       prevBtn.addEventListener('click', () => {
@@ -3134,7 +3134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTourStep();
       });
     }
-    
+
     // Position popover
     setTimeout(() => {
       if (targetEl) {
@@ -3147,10 +3147,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tourOverlay) tourOverlay.classList.remove('active');
     if (tourPopover) tourPopover.classList.remove('active');
     document.querySelectorAll('.tour-focus').forEach(el => el.classList.remove('tour-focus'));
-    
+
     // Always switch back to the main telemetry tab
     switchTab('telemetry');
-    
+
     // Save completion state
     if (currentTourStep === tourSteps.length - 1 && !localStorage.getItem('EcoPulse_onboarded_completed')) {
       awardChallengePoints('Quest Completed! 🎓', 50);
@@ -3165,7 +3165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popoverHeight = popover.offsetHeight || 160;
     let top = 0;
     let left = 0;
-    
+
     if (position === 'center') {
       left = (window.innerWidth - popoverWidth) / 2;
       top = (window.innerHeight - popoverHeight) / 2;
@@ -3182,7 +3182,7 @@ document.addEventListener('DOMContentLoaded', () => {
       left = rect.left + (rect.width / 2) - (popoverWidth / 2);
       top = rect.top - popoverHeight - 16;
     }
-    
+
     // Boundary collision checks
     if (left < 16) left = 16;
     if (left + popoverWidth > window.innerWidth - 16) {
@@ -3192,7 +3192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (top + popoverHeight > window.innerHeight - 16) {
       top = window.innerHeight - popoverHeight - 16;
     }
-    
+
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
   }
@@ -3205,10 +3205,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set defaults
   updateModelDetails();
   updateRealtimeCounts();
-  
+
   // Fetch Grid Info
   updateGridMetrics();
-  
+
   // Auto-refresh grid stats every 2 minutes, but avoid background-tab work.
   let gridRefreshTimer = null;
   function startGridAutoRefresh() {
@@ -3234,7 +3234,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   startGridAutoRefresh();
-  
+
   // Initialize Lucide Icons
   lucide.createIcons();
 
@@ -3245,7 +3245,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', (e) => {
     const target = e.target.closest('button, a, [role="button"], .rec-action-btn');
     if (!target) return;
-    
+
     const elementType = target.tagName.toLowerCase();
     let elementId = target.id || target.getAttribute('aria-label');
     if (!elementId) {
@@ -3256,12 +3256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         elementId = target.className ? target.className.split(' ')[0] : 'unnamed-element';
       }
     }
-    
+
     let context = {};
     if (target.dataset) {
       context = { ...target.dataset };
     }
-    
+
     logClickEventToSupabase(elementId, elementType, 'click', context);
   });
 
@@ -3269,12 +3269,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('change', (e) => {
     const target = e.target;
     if (target.tagName.toLowerCase() !== 'select') return;
-    
+
     const elementId = target.id || target.className || 'unnamed-select';
     const context = {
       selected_value: target.value
     };
-    
+
     logClickEventToSupabase(elementId, 'select', 'change', context);
   });
 });
@@ -3303,29 +3303,29 @@ async function sha256(message) {
 let sessionPromise = null;
 async function getOrCreateSession() {
   if (sessionPromise) return sessionPromise;
-  
+
   sessionPromise = (async () => {
     let sessionId = sessionStorage.getItem('ecopulse_session_id');
     const hasClient = typeof window !== 'undefined' && window.supabaseClient;
-    
+
     if (!sessionId) {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         sessionId = crypto.randomUUID();
       } else {
-        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
           const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
           return v.toString(16);
         });
       }
       sessionStorage.setItem('ecopulse_session_id', sessionId);
     }
-    
+
     if (hasClient) {
       try {
         const ua = navigator.userAgent || 'unknown';
         const uaHash = await sha256(ua);
         const referrer = document.referrer || 'direct';
-        
+
         let deviceCategory = 'desktop';
         const width = window.innerWidth;
         if (width < 768) {
@@ -3333,7 +3333,7 @@ async function getOrCreateSession() {
         } else if (width < 1024) {
           deviceCategory = 'tablet';
         }
-        
+
         const { error } = await window.supabaseClient
           .from('user_sessions')
           .upsert({
@@ -3343,7 +3343,7 @@ async function getOrCreateSession() {
             device_category: deviceCategory,
             last_active_at: new Date().toISOString()
           });
-          
+
         if (error) {
           console.warn('Supabase: failed to upsert user session:', error);
         }
@@ -3353,7 +3353,7 @@ async function getOrCreateSession() {
     }
     return sessionId;
   })();
-  
+
   return sessionPromise;
 }
 
@@ -3363,13 +3363,13 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
     console.log('Supabase [Mock Mode]: Audit event logged for prompt length:', promptText.length);
     return;
   }
-  
+
   try {
     const sessionId = await getOrCreateSession();
     const isRouter = state.selectedModel === 'eco-router';
     const comp = analyzePromptComplexity(promptText);
     const workload = classifyWorkloadClass(promptText, state.attachments);
-    
+
     const { data, error } = await window.supabaseClient
       .from('audit_events')
       .insert({
@@ -3393,15 +3393,15 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
       })
       .select('audit_id')
       .single();
-      
+
     if (error) {
       console.warn('Supabase: failed to log audit event:', error);
       return;
     }
-    
+
     const auditId = data?.audit_id;
     if (!auditId) return;
-    
+
     // Log recommendations associated with this audit
     // 1. Model Swap Recommendation
     if (activeModelKey !== 'llama3-8b-flash') {
@@ -3422,7 +3422,7 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
           });
       }
     }
-    
+
     // 2. Peak Shifting Recommendation
     let lowestSlot = state.hourlyForecast[0];
     state.hourlyForecast.forEach(slot => {
@@ -3430,10 +3430,10 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
         lowestSlot = slot;
       }
     });
-    
+
     const currentIntensity = state.carbonIntensity;
     const lowestIntensity = lowestSlot.intensity;
-    
+
     if (currentIntensity - lowestIntensity > 15) {
       const timeSavingsPct = ((currentIntensity - lowestIntensity) / currentIntensity * 100).toFixed(0);
       const potentialCo2Saved = ((currentIntensity - lowestIntensity) / currentIntensity) * metrics.co2Grams;
@@ -3449,12 +3449,12 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
           is_adopted: false
         });
     }
-    
+
     // Update user session cumulative statistics
     let totalAudits = parseInt(sessionStorage.getItem('ecopulse_total_audits') || '0', 10);
     totalAudits += 1;
     sessionStorage.setItem('ecopulse_total_audits', totalAudits.toString());
-    
+
     await window.supabaseClient
       .from('user_sessions')
       .update({
@@ -3463,7 +3463,7 @@ async function logAuditEventToSupabase(promptText, simulatedOutput, activeModelK
         last_active_at: new Date().toISOString()
       })
       .eq('session_id', sessionId);
-      
+
   } catch (err) {
     console.warn('Supabase: error in logAuditEventToSupabase:', err);
   }
@@ -3477,21 +3477,21 @@ function classifyWorkloadClass(text, attachments) {
     return 'document-processing';
   }
   if (!text) return 'conversational';
-  
+
   const codePatterns = [
-    /\bdef\b/, /\bfunction\b/, /\bclass\b/, /\bconst\b/, /\bimport\b/, 
+    /\bdef\b/, /\bfunction\b/, /\bclass\b/, /\bconst\b/, /\bimport\b/,
     /\blet\b/, /\bvar\b/, /\breturn\b/, /\bconsole\.log\b/, /\bprintf?\b/,
     /\bselect\s+.*\s+from\b/i, /<html>/i, /css/i, /[\{\}\[\]\(\)]/
   ];
-  
+
   const mathPatterns = [
     /\bsqrt\b/i, /\bintegral\b/i, /\bmatrix\b/i, /\bequation\b/i,
     /\bformula\b/i, /\bderive\b/i, /[\+\-\*\/=]{2,}/
   ];
-  
+
   let hasCode = codePatterns.some(pat => pat.test(text));
   let hasMath = mathPatterns.some(pat => pat.test(text));
-  
+
   if (hasCode) return 'coding';
   if (hasMath) return 'mathematics';
   if (text.length < 150) return 'conversational';
@@ -3504,7 +3504,7 @@ async function logClickEventToSupabase(elementId, elementType, interactionType, 
     console.log('Supabase [Mock Mode]: Click event logged:', { elementId, elementType, interactionType, context });
     return;
   }
-  
+
   try {
     const sessionId = await getOrCreateSession();
     await window.supabaseClient
@@ -3527,7 +3527,7 @@ async function logGridObservationToSupabase() {
     console.log('Supabase [Mock Mode]: Grid observation logged at intensity:', state.carbonIntensity);
     return;
   }
-  
+
   try {
     const regionId = state.selectedRegionId;
     const regionName = regionId === 'national' ? 'United Kingdom' : (LOCAL_REGION_DATA[regionId]?.name || 'Selected Region');
@@ -3535,7 +3535,7 @@ async function logGridObservationToSupabase() {
     const intensityIndex = intensity < 75 ? 'very low' : intensity < 120 ? 'moderate' : 'high';
     const fuelMix = state.generationMix || [];
     const observedAt = new Date().toISOString();
-    
+
     // Upsert actual observation
     const { error } = await window.supabaseClient
       .from('grid_observations')
@@ -3551,21 +3551,21 @@ async function logGridObservationToSupabase() {
       }, {
         onConflict: 'region_id,observed_at,is_forecast'
       });
-      
+
     if (error) {
       console.warn('Supabase: failed to log actual grid observation:', error);
     }
-    
+
     // Upsert forecast slots
     if (state.hourlyForecast && state.hourlyForecast.length > 0) {
       const forecastInserts = state.hourlyForecast.map(slot => {
         const today = new Date();
         const [hours, minutes] = slot.time.split(':');
         today.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-        
+
         const slotIntensity = slot.intensity;
         const slotIndex = slotIntensity < 75 ? 'very low' : slotIntensity < 120 ? 'moderate' : 'high';
-        
+
         return {
           region_id: regionId,
           region_name: regionName,
@@ -3577,13 +3577,13 @@ async function logGridObservationToSupabase() {
           observed_at: today.toISOString()
         };
       });
-      
+
       const { error: forecastErr } = await window.supabaseClient
         .from('grid_observations')
         .upsert(forecastInserts, {
           onConflict: 'region_id,observed_at,is_forecast'
         });
-        
+
       if (forecastErr) {
         console.warn('Supabase: failed to log grid forecasts:', forecastErr);
       }
@@ -3601,7 +3601,7 @@ async function markRecommendationAdopted(category) {
   }
   const sessionId = sessionStorage.getItem('ecopulse_session_id');
   if (!sessionId) return;
-  
+
   try {
     const { data: recs, error: fetchErr } = await window.supabaseClient
       .from('recommendations')
@@ -3610,15 +3610,15 @@ async function markRecommendationAdopted(category) {
       .eq('advice_category', category)
       .order('created_at', { ascending: false })
       .limit(1);
-      
+
     if (fetchErr || !recs || recs.length === 0) return;
-    
+
     const recId = recs[0].recommendation_id;
     const { error: updateErr } = await window.supabaseClient
       .from('recommendations')
       .update({ is_adopted: true })
       .eq('recommendation_id', recId);
-      
+
     if (updateErr) {
       console.warn('Supabase: failed to update recommendation adoption:', updateErr);
     } else {

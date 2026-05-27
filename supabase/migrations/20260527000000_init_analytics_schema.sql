@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.model_catalog (
 -- Populate model catalog with default EcoPulse models
 INSERT INTO public.model_catalog (model_id, model_name, provider, model_size, kwh_per_1k_tokens, water_ml_per_1k_tokens, ewaste_mg_per_1k_tokens, suitability_tags)
 VALUES
-    ('eco-router', 'Green Eco-Router', 'Echo Pulse', 'Auto', 0.001500, 1.5000, 0.0150, ARRAY['routing', 'optimization']),
+    ('eco-router', 'Green Eco-Router', 'Eco Pulse', 'Auto', 0.001500, 1.5000, 0.0150, ARRAY['routing', 'optimization']),
     ('gpt-4-opus', 'Claude 3 Opus / GPT-4', 'Anthropic / Microsoft', 'Extra Large', 0.012000, 12.0000, 0.1500, ARRAY['complex-reasoning', 'coding', 'heavy-analysis']),
     ('gpt-4o-sonnet', 'GPT-4o / Claude 3.5 Sonnet', 'Microsoft / Anthropic', 'Large', 0.004000, 4.0000, 0.0500, ARRAY['conversational', 'creative-writing', 'image-processing']),
     ('gpt-35-llama70', 'Llama 3 70B / GPT-3.5 Turbo', 'Meta / Microsoft', 'Medium', 0.001500, 1.5000, 0.0150, ARRAY['general-purpose', 'summarization', 'standard-tasks']),

@@ -72,14 +72,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Echo Pulse" },
+      { title: "Eco Pulse" },
       {
         name: "description",
         content:
-          "Echo Pulse: A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
+          "Eco Pulse: A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
       },
-      { name: "author", content: "Echo Pulse" },
-      { property: "og:title", content: "Echo Pulse" },
+      { name: "author", content: "Eco Pulse" },
+      { property: "og:title", content: "Eco Pulse" },
       {
         property: "og:description",
         content:
@@ -88,7 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "/eco/bg.png" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Echo Pulse" },
+      { name: "twitter:title", content: "Eco Pulse" },
       {
         name: "twitter:description",
         content:
