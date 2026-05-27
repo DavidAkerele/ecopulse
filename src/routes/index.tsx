@@ -123,6 +123,14 @@ function Index() {
         document.dispatchEvent(new Event("DOMContentLoaded"));
         // @ts-expect-error global from CDN
         window.lucide?.createIcons?.();
+
+        const preloader = document.getElementById("app-preloader");
+        if (preloader) {
+          preloader.classList.add("fade-out");
+          setTimeout(() => {
+            preloader.remove();
+          }, 500);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -133,8 +141,105 @@ function Index() {
     };
   }, [mounted]);
 
+  const preloaderStyles = `
+    .preloader-overlay {
+      position: fixed;
+      inset: 0;
+      background: #050806;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 1;
+    }
+    .preloader-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .preloader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .preloader-icon-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preloader-icon {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      z-index: 2;
+      animation: logo-bounce 2s infinite ease-in-out;
+    }
+    .preloader-ring {
+      position: absolute;
+      inset: 0;
+      border: 2px solid rgba(16, 185, 129, 0.1);
+      border-top-color: #10b981;
+      border-radius: 50%;
+      animation: preloader-spin 1.2s infinite linear;
+      z-index: 1;
+    }
+    .preloader-text {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: #10b981;
+      opacity: 0.8;
+      animation: preloader-fade 1.5s infinite ease-in-out;
+    }
+    @keyframes preloader-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes logo-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes preloader-fade {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.85; }
+    }
+  `;
+
   if (!mounted) {
-    return <div ref={ref} />;
+    return (
+      <div ref={ref}>
+        <style dangerouslySetInnerHTML={{ __html: preloaderStyles }} />
+        <div id="app-preloader" className="preloader-overlay">
+          <div className="preloader-content">
+            <div className="preloader-icon-wrap">
+              <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
+              <div className="preloader-ring"></div>
+            </div>
+            <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+          </div>
+        </div>
+      </div>
+    );
   }
-  return <div ref={ref} dangerouslySetInnerHTML={{ __html: ECO_BODY }} />;
+
+  return (
+    <div ref={ref}>
+      <style dangerouslySetInnerHTML={{ __html: preloaderStyles }} />
+      <div id="app-preloader" className="preloader-overlay">
+        <div className="preloader-content">
+          <div className="preloader-icon-wrap">
+            <img src="/eco/favicon.png" className="preloader-icon" alt="Echo Pulse Logo" />
+            <div className="preloader-ring"></div>
+          </div>
+          <span className="preloader-text">INITIALIZING ECHO PULSE</span>
+        </div>
+      </div>
+      <div dangerouslySetInnerHTML={{ __html: ECO_BODY }} />
+    </div>
+  );
 }
