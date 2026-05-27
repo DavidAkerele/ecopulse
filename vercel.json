@@ -1,0 +1,11 @@
+{
+  "buildCommand": "bun run build",
+  "outputDirectory": "dist/client",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
