@@ -13,7 +13,13 @@ const MODELS = {
     waterPer1k: 1.5,
     ewastePer1k: 0.015,
     slogan: 'Dynamic model selection based on prompt load & grid emissions.',
-    color: '#10b981' // green
+    color: '#10b981', // green
+    datacenter: {
+      name: 'Dynamic Routing',
+      location: 'Variable Grid',
+      flag: '🌐',
+      gridIntensity: 'dynamic'
+    }
   },
   'gpt-4-opus': {
     name: 'Claude 3 Opus / GPT-4 (Super Heavy)',
@@ -23,7 +29,13 @@ const MODELS = {
     waterPer1k: 12.0, // ml of water consumed for cooling per 1k tokens
     ewastePer1k: 0.15, // mg of GPU hardware depletion per 1k tokens
     slogan: 'Max capability, massive compute footprint.',
-    color: '#ef4444' // red
+    color: '#ef4444', // red
+    datacenter: {
+      name: 'US-East (Virginia)',
+      location: 'United States',
+      flag: '🇺🇸',
+      gridIntensity: 370
+    }
   },
   'gpt-4o-sonnet': {
     name: 'GPT-4o / Claude 3.5 Sonnet (Balanced Heavy)',
@@ -33,7 +45,13 @@ const MODELS = {
     waterPer1k: 4.0,
     ewastePer1k: 0.05,
     slogan: 'Frontier reasoning, balanced carbon profile.',
-    color: '#f97316' // orange
+    color: '#f97316', // orange
+    datacenter: {
+      name: 'US-East & EU-West (Dublin)',
+      location: 'USA / Ireland',
+      flag: '🇺🇸/🇮🇪',
+      gridIntensity: 330
+    }
   },
   'gpt-35-llama70': {
     name: 'Llama 3 70B / GPT-3.5 Turbo (Standard)',
@@ -43,7 +61,13 @@ const MODELS = {
     waterPer1k: 1.5,
     ewastePer1k: 0.015,
     slogan: 'Standard operations, moderate energy demand.',
-    color: '#eab308' // yellow
+    color: '#eab308', // yellow
+    datacenter: {
+      name: 'EU-Central (Frankfurt)',
+      location: 'Germany',
+      flag: '🇩🇪',
+      gridIntensity: 290
+    }
   },
   'llama3-8b-flash': {
     name: 'Llama 3 8B / Gemini 1.5 Flash (Lightweight)',
@@ -53,7 +77,13 @@ const MODELS = {
     waterPer1k: 0.3,
     ewastePer1k: 0.003,
     slogan: 'Ultra-fast inference, minimal environmental footprint.',
-    color: '#22c55e' // green
+    color: '#22c55e', // green
+    datacenter: {
+      name: 'UK-South (London)',
+      location: 'United Kingdom',
+      flag: '🇬🇧',
+      gridIntensity: 'dynamic'
+    }
   }
 };
 
@@ -93,6 +123,35 @@ const API_FORECAST = 'https://api.carbonintensity.org.uk/intensity/date';
 // -------------------------------------------------------------
 // Carbon Math & Estimations
 // -------------------------------------------------------------
+
+// Formatting Helpers
+function formatEnergy(wh) {
+  if (wh >= 1000) {
+    return (wh / 1000).toFixed(2) + ' kWh';
+  }
+  return wh.toFixed(1) + ' Wh';
+}
+
+function formatCarbon(g) {
+  if (g >= 1000) {
+    return (g / 1000).toFixed(2) + ' kg';
+  }
+  return g.toFixed(2) + ' g';
+}
+
+function formatWater(ml) {
+  if (ml >= 1000) {
+    return (ml / 1000).toFixed(2) + ' L';
+  }
+  return ml.toFixed(1) + ' ml';
+}
+
+function formatEwaste(mg) {
+  if (mg >= 1000) {
+    return (mg / 1000).toFixed(2) + ' g';
+  }
+  return mg.toFixed(3) + ' mg';
+}
 
 // Analyze prompt text for complexity based on character length and presence of programming/math keywords
 function analyzePromptComplexity(text) {
@@ -194,10 +253,53 @@ function runEcoRouting(promptText, gridIntensity) {
   };
 }
 
-// Calculate estimated tokens based on text characters
-// Standard approximation: 1 token = 4 characters (approx 0.75 words)
-function estimateTokens(text) {
+// Cache encoders to avoid redundant loading overhead
+const cachedEncoders = {};
+
+// Calculate estimated tokens based on text characters using OpenAI's tiktoken if available
+// Fallback standard approximation: 1 token = 4 characters (approx 0.75 words)
+function estimateTokens(text, modelKey = null) {
   if (!text) return 0;
+  try {
+    if (window.getEncoding) {
+      let targetModelKey = modelKey || state.selectedModel;
+      
+      // Resolve eco-router
+      if (targetModelKey === 'eco-router') {
+        const promptInput = document.getElementById('prompt-input');
+        const promptVal = promptInput ? promptInput.value : '';
+        const route = runEcoRouting(promptVal, state.carbonIntensity);
+        targetModelKey = route.routedModelKey;
+      }
+      
+      // Map model keys to standard OpenAI models/encodings
+      let mappedModel = 'gpt-4o'; // default o200k_base
+      if (targetModelKey === 'gpt-4-opus') {
+        mappedModel = 'gpt-4'; // cl100k_base
+      } else if (targetModelKey === 'gpt-4o-sonnet') {
+        mappedModel = 'gpt-4o'; // o200k_base
+      } else if (targetModelKey === 'gpt-35-llama70') {
+        mappedModel = 'gpt-3.5-turbo'; // cl100k_base
+      } else if (targetModelKey === 'llama3-8b-flash') {
+        mappedModel = 'gpt-4o'; // fallback
+      }
+      
+      if (!cachedEncoders[mappedModel]) {
+        if (window.encodingForModel) {
+          cachedEncoders[mappedModel] = window.encodingForModel(mappedModel);
+        } else {
+          cachedEncoders[mappedModel] = window.getEncoding('cl100k_base');
+        }
+      }
+      
+      const encoder = cachedEncoders[mappedModel];
+      if (encoder) {
+        return encoder.encode(text).length;
+      }
+    }
+  } catch (e) {
+    console.warn("Tiktoken encoding failed, falling back to approximation:", e);
+  }
   return Math.ceil(text.length / 4);
 }
 
@@ -212,14 +314,16 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
   }
   
   const model = MODELS[activeKey];
+  const modelIntensity = model.datacenter.gridIntensity === 'dynamic' ? intensity : model.datacenter.gridIntensity;
+  
   const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
-  const inTokens = estimateTokens(inputTxt) + attachmentTokens;
-  const outTokens = estimateTokens(outputTxt);
+  const inTokens = estimateTokens(inputTxt, activeKey) + attachmentTokens;
+  const outTokens = estimateTokens(outputTxt, activeKey);
   const totalTokens = inTokens + outTokens;
   
   const energyKwh = (totalTokens / 1000) * model.kwhPer1k;
   const energyWh = energyKwh * 1000;
-  const co2Grams = energyKwh * intensity;
+  const co2Grams = energyKwh * modelIntensity;
   
   const waterMl = (totalTokens / 1000) * model.waterPer1k;
   const ewasteMg = (totalTokens / 1000) * model.ewastePer1k;
@@ -229,8 +333,9 @@ function calculateCarbonMetrics(inputTxt, outputTxt, modelKey, intensity) {
     .filter(key => key !== 'eco-router')
     .map(key => {
       const altModel = MODELS[key];
+      const altIntensity = altModel.datacenter.gridIntensity === 'dynamic' ? intensity : altModel.datacenter.gridIntensity;
       const altEnergyKwh = (totalTokens / 1000) * altModel.kwhPer1k;
-      const altCo2Grams = altEnergyKwh * intensity;
+      const altCo2Grams = altEnergyKwh * altIntensity;
       const savingsPercent = ((co2Grams - altCo2Grams) / (co2Grams || 1)) * 100;
       return {
         key,
@@ -551,45 +656,8 @@ function renderGridUI() {
   const baseColor = getIntensityColor(state.carbonIntensity);
   document.documentElement.style.setProperty('--glow-color', baseColor + '1a'); // 10% opacity glow
   
-  // Update Green AI Guide advice box dynamically
-  const adviceBox = document.getElementById('grid-advice-box');
-  if (adviceBox) {
-    let adviceHtml = '';
-    let statusClass = 'moderate';
-    
-    if (state.carbonIntensity < 75) {
-      statusClass = 'clean';
-      adviceHtml = `
-        <div class="advice-header">
-          <i data-lucide="smile" class="advice-icon text-green"></i>
-          <strong>Grid Status: Clean (Optimal)</strong>
-        </div>
-        <p class="advice-text">The electric grid is currently powered by a high percentage of wind, solar, or nuclear energy. This is an optimal time to execute resource-intensive audits or complex AI queries.</p>
-      `;
-    } else if (state.carbonIntensity > 150) {
-      statusClass = 'dirty';
-      adviceHtml = `
-        <div class="advice-header">
-          <i data-lucide="alert-triangle" class="advice-icon text-red"></i>
-          <strong>Grid Status: Dirty (Carbon-Heavy)</strong>
-        </div>
-        <p class="advice-text">Emissions are high. Consider utilizing the lightweight <strong>Llama 3 8B / Flash</strong> tier, enabling the Eco-Router, or delaying large batch requests to off-peak hours.</p>
-      `;
-    } else {
-      statusClass = 'moderate';
-      adviceHtml = `
-        <div class="advice-header">
-          <i data-lucide="info" class="advice-icon text-amber"></i>
-          <strong>Grid Status: Moderate Carbon Load</strong>
-        </div>
-        <p class="advice-text">Carbon intensity is standard. Using the <strong>Eco-Router</strong> ensures standard formatting or conversational text runs on lightweight engines, saving grid reserves.</p>
-      `;
-    }
-    
-    adviceBox.className = `grid-advice-box advice-${statusClass}`;
-    adviceBox.innerHTML = adviceHtml;
-    lucide.createIcons();
-  }
+  // Update Data Centre Grid list UI
+  renderDatacenterUI();
   
   // Update recommendations and future forecasts
   renderForecastChart();
@@ -618,6 +686,126 @@ function renderForecastChart() {
   });
 }
 
+function renderDatacenterUI() {
+  const datacenterList = document.getElementById('datacenter-list');
+  if (!datacenterList) return;
+  
+  datacenterList.innerHTML = '';
+  
+  const promptInput = document.getElementById('prompt-input');
+  const text = promptInput ? promptInput.value : '';
+  
+  let activeModelKey = state.selectedModel;
+  if (state.selectedModel === 'eco-router') {
+    const route = runEcoRouting(text, state.carbonIntensity);
+    activeModelKey = route.routedModelKey;
+  }
+  
+  const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
+  const inTokens = estimateTokens(text, activeModelKey) + attachmentTokens;
+  // Estimate response size: if there is text, estimate as 1.2x input size or at least 50 tokens
+  const outTokens = text ? Math.max(50, Math.ceil(inTokens * 1.2)) : 0;
+  const totalTokens = inTokens + outTokens;
+  
+  let calcTokens = totalTokens;
+  let isBaseline = false;
+  if (calcTokens === 0) {
+    calcTokens = 1000; // Baseline of 1,000 tokens when workspace is empty
+    isBaseline = true;
+  }
+  
+  // Active model grid intensity coefficient & emissions
+  const activeModel = MODELS[activeModelKey];
+  const activeIntensity = activeModel.datacenter.gridIntensity === 'dynamic' ? state.carbonIntensity : activeModel.datacenter.gridIntensity;
+  const activeEnergyKwh = (calcTokens / 1000) * activeModel.kwhPer1k;
+  const activeCo2 = activeEnergyKwh * activeIntensity;
+  
+  // Swap background image based on active model grid intensity
+  // Swap background image based on current grid coefficient
+  const staticBg = document.querySelector('.static-bg');
+  if (staticBg) {
+    if (state.carbonIntensity < 150) {
+      staticBg.style.backgroundImage = 'url("/eco/bg.png")';
+    } else if (state.carbonIntensity < 250) {
+      staticBg.style.backgroundImage = 'url("/eco/bg_moderate.jpg")';
+    } else {
+      staticBg.style.backgroundImage = 'url("/eco/bg_dirty.jpg")';
+    }
+  }
+  
+  Object.keys(MODELS).forEach(key => {
+    if (key === 'eco-router') return;
+    
+    const model = MODELS[key];
+    const isActive = (key === activeModelKey);
+    const dc = model.datacenter;
+    
+    let intensityVal = dc.gridIntensity;
+    if (dc.gridIntensity === 'dynamic') {
+      intensityVal = state.carbonIntensity;
+    }
+    
+    // Estimate footprint for this model
+    const energyKwh = (calcTokens / 1000) * model.kwhPer1k;
+    const co2 = energyKwh * intensityVal;
+    
+    // Determine status badge class and label
+    let labelClass = 'intensity-lbl-moderate';
+    let labelText = 'Moderate';
+    
+    if (intensityVal < 100) {
+      labelClass = 'intensity-lbl-clean';
+      labelText = 'Optimal';
+    } else if (intensityVal > 250) {
+      labelClass = 'intensity-lbl-dirty';
+      labelText = 'Carbon-Heavy';
+    }
+    
+    // Create comparison badge
+    let compHtml = '';
+    if (isActive) {
+      compHtml = `<span class="datacenter-comp-badge badge-active">Active</span>`;
+    } else {
+      const diffCo2 = co2 - activeCo2;
+      const pct = (diffCo2 / activeCo2) * 100;
+      if (pct > 0) {
+        compHtml = `<span class="datacenter-comp-badge badge-higher">+${pct.toFixed(0)}% emissions</span>`;
+      } else {
+        compHtml = `<span class="datacenter-comp-badge badge-lower">${pct.toFixed(0)}% savings</span>`;
+      }
+    }
+    
+    const rowHtml = `
+      <div class="datacenter-item ${isActive ? 'datacenter-item-active' : ''}">
+        <div class="datacenter-item-top">
+          <div class="datacenter-name-wrapper">
+            ${isActive ? '<span class="active-pulse-dot"></span>' : '<span class="inactive-dot"></span>'}
+            <span class="datacenter-flag">${dc.flag}</span>
+            <span class="datacenter-region">${dc.name}</span>
+          </div>
+          <span class="datacenter-intensity font-mono">
+            <strong>${intensityVal}</strong> g/kWh
+          </span>
+        </div>
+        <div class="datacenter-item-bottom">
+          <span class="datacenter-model-name">${model.name.split(' / ')[0]}</span>
+          <div class="datacenter-metrics-row">
+            <span class="datacenter-emissions font-mono">
+              <strong>${formatCarbon(co2)}</strong> CO₂ ${isBaseline ? '<span class="baseline-note">(est. 1k)</span>' : ''}
+            </span>
+            ${compHtml}
+          </div>
+        </div>
+      </div>
+    `;
+    datacenterList.insertAdjacentHTML('beforeend', rowHtml);
+  });
+  
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
 // Update token estimation tags dynamically as users type
 function updateRealtimeCounts() {
   const promptInput = document.getElementById('prompt-input');
@@ -625,11 +813,19 @@ function updateRealtimeCounts() {
   const tokenEstimate = document.getElementById('token-estimate');
   const energyEstimate = document.getElementById('energy-estimate');
   
+  if (!promptInput || !characterCount || !tokenEstimate || !energyEstimate) return;
+  
   const text = promptInput.value;
   const count = text.length;
   
+  let activeModelKey = state.selectedModel;
+  if (state.selectedModel === 'eco-router') {
+    const route = runEcoRouting(text, state.carbonIntensity);
+    activeModelKey = route.routedModelKey;
+  }
+  
   const attachmentTokens = (state.attachments || []).reduce((acc, att) => acc + att.tokens, 0);
-  const textTokens = estimateTokens(text);
+  const textTokens = estimateTokens(text, activeModelKey);
   const tokens = textTokens + attachmentTokens;
   
   if (state.attachments && state.attachments.length > 0) {
@@ -644,12 +840,7 @@ function updateRealtimeCounts() {
   const routerIndicator = document.getElementById('router-indicator');
   const routerStatusText = document.getElementById('router-status-text');
   
-  let activeModelKey = state.selectedModel;
-  
   if (state.selectedModel === 'eco-router') {
-    const route = runEcoRouting(text, state.carbonIntensity);
-    activeModelKey = route.routedModelKey;
-    
     // Show router indicators in header
     if (routerDivider) routerDivider.style.display = 'inline-block';
     if (routerIndicator) {
@@ -682,7 +873,10 @@ function updateRealtimeCounts() {
   // Calculate instant expected energy usage just for prompt input
   const model = MODELS[activeModelKey];
   const energyWh = (tokens / 1000) * model.kwhPer1k * 1000;
-  energyEstimate.innerText = energyWh.toFixed(4) + ' Wh';
+  energyEstimate.innerText = formatEnergy(energyWh);
+  
+  // Dynamically update Data Centre Grid card with real-time prompt calculations
+  renderDatacenterUI();
 }
 
 let realtimeCountFrame = null;
@@ -824,7 +1018,7 @@ function renderAuditHistory() {
             ${item.model}
           </span>
           <span class="history-metrics font-mono">
-            <strong>${item.energy.toFixed(2)} Wh</strong> | <span style="color: #cbd5e1;">${item.co2.toFixed(3)}g CO₂</span>
+            <strong>${formatEnergy(item.energy)}</strong> | <span style="color: #cbd5e1;">${formatCarbon(item.co2)} CO₂</span>
           </span>
         </div>
       </div>
@@ -949,10 +1143,10 @@ function runCarbonAudit() {
 // Populate the main metrics results cards
 function updateMetricsUI(metrics, activeModelKey = state.selectedModel) {
   // Numeric updates
-  document.getElementById('res-energy').innerText = metrics.energyWh.toFixed(3) + ' Wh';
-  document.getElementById('res-carbon').innerText = metrics.co2Grams.toFixed(3) + ' g';
-  document.getElementById('res-water').innerText = metrics.waterMl.toFixed(2) + ' ml';
-  document.getElementById('res-ewaste').innerText = metrics.ewasteMg.toFixed(3) + ' mg';
+  document.getElementById('res-energy').innerText = formatEnergy(metrics.energyWh);
+  document.getElementById('res-carbon').innerText = formatCarbon(metrics.co2Grams);
+  document.getElementById('res-water').innerText = formatWater(metrics.waterMl);
+  document.getElementById('res-ewaste').innerText = formatEwaste(metrics.ewasteMg);
   
   // Analogies updates
   document.getElementById('analogy-led').innerText = metrics.analogies.ledHours.toFixed(1) + ' hrs';
@@ -1102,6 +1296,9 @@ function updateModelDetails() {
   specSlogan.innerText = slogan;
   modelBadge.style.backgroundColor = m.color;
   modelBadge.innerText = state.selectedModel === 'eco-router' ? `Auto (${m.size})` : m.size;
+  
+  // Update Data Centre Highlights
+  renderDatacenterUI();
 }
 
 // -------------------------------------------------------------

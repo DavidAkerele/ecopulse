@@ -58,6 +58,36 @@ function Index() {
         document.body.appendChild(s);
       });
 
+    const loadTiktoken = () =>
+      new Promise<void>((resolve) => {
+        const existing = document.querySelector(`script[data-eco="tiktoken"]`);
+        if (existing) {
+          // @ts-expect-error check global
+          if (typeof window !== "undefined" && window.jsTiktokenLoaded) {
+            return resolve();
+          }
+          document.addEventListener('tiktoken-ready', () => resolve(), { once: true });
+          return;
+        }
+        const s = document.createElement("script");
+        s.type = "module";
+        s.dataset.eco = "tiktoken";
+        s.textContent = `
+          import { getEncoding, encodingForModel } from 'https://cdn.jsdelivr.net/npm/js-tiktoken@1.0.21/+esm';
+          window.getEncoding = getEncoding;
+          window.encodingForModel = encodingForModel;
+          window.jsTiktokenLoaded = true;
+          document.dispatchEvent(new CustomEvent('tiktoken-ready'));
+        `;
+        document.body.appendChild(s);
+        // @ts-expect-error check global
+        if (typeof window !== "undefined" && window.jsTiktokenLoaded) {
+          resolve();
+        } else {
+          document.addEventListener('tiktoken-ready', () => resolve(), { once: true });
+        }
+      });
+
     (async () => {
       try {
         await loadScript("https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js");
@@ -67,6 +97,11 @@ function Index() {
           // @ts-expect-error global from CDN
           window.lucide.createIcons();
         }
+        
+        // Wait for tiktoken to load first
+        await loadTiktoken();
+        if (cancelled) return;
+
         await loadScript("/eco/app.js");
         if (cancelled) return;
         document.dispatchEvent(new Event("DOMContentLoaded"));

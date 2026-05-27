@@ -34,6 +34,7 @@ body > div:first-child { height: 100%; }
   opacity: 0.95;
   transform: scale(1.04);
   z-index: 0;
+  transition: background-image 0.8s ease-in-out;
 }
 .video-bg {
   position: absolute;
@@ -83,6 +84,13 @@ body > div:first-child { height: 100%; }
 .card-header {
   padding: 14px 18px !important;
 }
+.card-header h2 {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: 0.88rem !important;
+  line-height: 1.25 !important;
+}
 .card-body {
   padding: 16px 18px !important;
 }
@@ -92,14 +100,39 @@ body > div:first-child { height: 100%; }
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: 16px !important;
-  gap: 16px !important;
-  flex-wrap: wrap;
+  padding: 10px 14px !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
   border-radius: 16px !important;
   width: 100% !important;
   max-width: 100% !important;
-  margin: 0 0 24px 0 !important;
+  margin: 0 0 16px 0 !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.pill-title {
+  flex-shrink: 0 !important;
+}
+
+.pill-model-selector {
+  flex-shrink: 1 !important;
+  min-width: 120px !important;
+}
+
+.pill-select {
+  max-width: 125px !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.router-badge, .live-badge, .savings-badge, .score-badge {
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 .pill-divider { height: 20px; }
 
@@ -1131,6 +1164,227 @@ body:has(.tour-focus) .bottom-bento-grid:not(.tour-focus) {
   box-shadow: 0 0 0 16px rgba(74, 222, 128, 0.25), 0 0 0 9999px rgba(3, 7, 18, 0.65) !important;
   pointer-events: none;
 }
+
+/* =============================================================
+   Data Centre Grid & Geolocation Styles
+   ============================================================= */
+.datacenter-card {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 320px;
+}
+
+.datacenter-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  flex: 1 1 auto !important;
+}
+
+.datacenter-info-box {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
+.datacenter-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.datacenter-header-row i {
+  width: 14px;
+  height: 14px;
+}
+
+.datacenter-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.datacenter-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.datacenter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.datacenter-item {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.datacenter-item:hover:not(.datacenter-item-active) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.datacenter-item-active {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05), inset 0 0 10px rgba(16, 185, 129, 0.02) !important;
+}
+
+.datacenter-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.datacenter-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.active-pulse-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-green-dot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-green-dot {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.inactive-dot {
+  width: 6px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+}
+
+.datacenter-flag {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.datacenter-region {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.datacenter-intensity {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.datacenter-intensity strong {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+}
+
+.datacenter-item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.datacenter-model-name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.datacenter-status-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+}
+
+.intensity-lbl-clean {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.intensity-lbl-moderate {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.intensity-lbl-dirty {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.datacenter-metrics-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.datacenter-emissions {
+  font-size: 0.72rem !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.datacenter-emissions strong {
+  color: #fff !important;
+}
+
+.baseline-note {
+  font-size: 0.58rem !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  font-weight: normal !important;
+}
+
+.datacenter-comp-badge {
+  font-size: 0.6rem !important;
+  font-weight: 600 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2px !important;
+  white-space: nowrap !important;
+}
+
+.datacenter-comp-badge.badge-active {
+  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.datacenter-comp-badge.badge-higher {
+  color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.12) !important;
+  border: 1px solid rgba(248, 113, 113, 0.2) !important;
+}
+
+.datacenter-comp-badge.badge-lower {
+  color: #34d399 !important;
+  background: rgba(52, 211, 153, 0.12) !important;
+  border: 1px solid rgba(52, 211, 153, 0.2) !important;
+}
+
 
 
 
