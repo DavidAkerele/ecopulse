@@ -16,9 +16,25 @@ export const Route = createFileRoute("/")({
         content:
           "AI carbon footprint, sustainable computing, green software, carbon intensity API, LLM energy calculator",
       },
+      { property: "og:title", content: "Echo Pulse" },
+      {
+        property: "og:description",
+        content:
+          "A sleek developer and consumer platform revealing the real-time environmental cost of interacting with large language models (LLMs) using UK National Grid live coefficients.",
+      },
+      { property: "og:image", content: "/eco/bg.png" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Echo Pulse" },
+      {
+        name: "twitter:description",
+        content:
+          "Reveal the real-time environmental cost of interacting with LLMs using UK National Grid live coefficients.",
+      },
+      { name: "twitter:image", content: "/eco/bg.png" },
     ],
     links: [
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/eco/favicon.png", type: "image/png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
